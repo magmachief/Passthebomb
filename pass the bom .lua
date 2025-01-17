@@ -1,4 +1,3 @@
--- Secure Whitelist System
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 
@@ -61,7 +60,7 @@ local WhitelistSystem = {
     end,
 }
 
--- Function to create the user input GUI
+-- Function to create the user input GUI with status feedback
 local function createUserInputGui()
     local player = Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
@@ -70,84 +69,109 @@ local function createUserInputGui()
     screenGui.Parent = playerGui
 
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 250)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -125)
+    frame.Size = UDim2.new(0, 300, 0, 300)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -150)
     frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     frame.Parent = screenGui
 
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
+    titleLabel.Text = "Enter User ID and Key"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextSize = 20
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Parent = frame
+
     local userIdInput = Instance.new("TextBox")
     userIdInput.Size = UDim2.new(0.8, 0, 0.2, 0)
-    userIdInput.Position = UDim2.new(0.1, 0, 0.25, 0)
-    userIdInput.PlaceholderText = "Enter User ID here"
-    userIdInput.Text = ""
+    userIdInput.Position = UDim2.new(0.1, 0, 0.2, 0)
+    userIdInput.PlaceholderText = "Enter your User ID here"
+    userIdInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    userIdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    userIdInput.TextSize = 18
+    userIdInput.Font = Enum.Font.SourceSans
     userIdInput.Parent = frame
 
     local keyInput = Instance.new("TextBox")
     keyInput.Size = UDim2.new(0.8, 0, 0.2, 0)
-    keyInput.Position = UDim2.new(0.1, 0, 0.5, 0)
-    keyInput.PlaceholderText = "Enter Key here"
-    keyInput.Text = ""
+    keyInput.Position = UDim2.new(0.1, 0, 0.45, 0)
+    keyInput.PlaceholderText = "Enter your key here"
+    keyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyInput.TextSize = 18
+    keyInput.Font = Enum.Font.SourceSans
     keyInput.Parent = frame
 
     local submitButton = Instance.new("TextButton")
-    submitButton.Size = UDim2.new(0.8, 0, 0.2, 0)
-    submitButton.Position = UDim2.new(0.1, 0, 0.75, 0)
+    submitButton.Size = UDim2.new(0.8, 0, 0.15, 0)
+    submitButton.Position = UDim2.new(0.1, 0, 0.7, 0)
     submitButton.Text = "Submit"
+    submitButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+    submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    submitButton.TextSize = 18
+    submitButton.Font = Enum.Font.SourceSans
     submitButton.Parent = frame
 
-    return screenGui, userIdInput, keyInput, submitButton
+    local statusLabel = Instance.new("TextLabel")
+    statusLabel.Size = UDim2.new(1, 0, 0.15, 0)
+    statusLabel.Position = UDim2.new(0, 0, 0.85, 0)
+    statusLabel.Text = ""
+    statusLabel.TextColor3 = Color3.fromRGB(255, 0, 0) -- Red for error messages
+    statusLabel.BackgroundTransparency = 1
+    statusLabel.TextSize = 16
+    statusLabel.Font = Enum.Font.SourceSansBold
+    statusLabel.Parent = frame
+
+    return screenGui, userIdInput, keyInput, submitButton, statusLabel
 end
 
--- Function to initialize whitelist and verify authorization
+-- Function to initialize the whitelist
 local function initializeWhitelist()
     local player = Players.LocalPlayer
     local userId = player.UserId
 
-    -- Skip authorization if already authorized
     if WhitelistSystem.state[userId] then
         runMainScript()
         return
     end
 
-    -- Function to verify user input
-    local function verifyUserInput(inputUserId, inputKey)
-        inputUserId = tonumber(inputUserId)
+    local screenGui, userIdInput, keyInput, submitButton, statusLabel = createUserInputGui()
+
+    submitButton.MouseButton1Click:Connect(function()
+        local inputUserId = userIdInput.Text
+        local inputKey = keyInput.Text
+
+        inputUserId = tonumber(inputUserId) -- Convert to number for validation
         if not inputUserId then
-            print("Invalid User ID")
-            return false
+            statusLabel.Text = "Invalid User ID"
+            return
         end
 
         local success, tierOrError = WhitelistSystem:checkAuthorization(inputUserId)
         if not success then
-            print("Unauthorized: " .. tierOrError)
-            return false
+            statusLabel.Text = "Authorization failed: " .. tierOrError
+            return
         end
 
         local validKey, message = WhitelistSystem:verifyKey(inputUserId, inputKey)
         if not validKey then
-            print("Invalid Key: " .. message)
-            return false
+            statusLabel.Text = "Invalid Key: " .. message
+            return
         end
 
-        WhitelistSystem.state[inputUserId] = true
-        print("User authorized successfully - Tier: " .. tierOrError)
-        return true
-    end
+        -- Success
+        WhitelistSystem.state[userId] = true
+        statusLabel.Text = "Authorization successful!"
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green for success
 
-    -- Show GUI for user input
-    local screenGui, userIdInput, keyInput, submitButton = createUserInputGui()
-
-    submitButton.MouseButton1Click:Connect(function()
-        if verifyUserInput(userIdInput.Text, keyInput.Text) then
-            screenGui:Destroy()
-            runMainScript()
-        else
-            print("Authorization failed")
-        end
+        task.wait(1) -- Pause briefly to show success message
+        screenGui:Destroy()
+        runMainScript()
     end)
 end
 
--- Main Script Execution
+-- Main script functionality
 function runMainScript()
     print("Main script running...")
     
@@ -389,8 +413,9 @@ autoPassBombButton.MouseButton1Click:Connect(function()
         end)
     end
 end)
+
 print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
 end
 
--- Start Whitelist Initialization
+-- Start the whitelist system
 initializeWhitelist()
