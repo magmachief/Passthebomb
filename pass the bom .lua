@@ -3,53 +3,6 @@ local Players = game:GetService("Players")
 
 local KEY = "Volleyball2007" -- The encryption key used for XOR encryption
 
--- Debug Console Function
-local function createDebugConsole()
-    local player = Players.LocalPlayer
-    local playerGui = player:WaitForChild("PlayerGui")
-
-    local debugGui = Instance.new("ScreenGui")
-    debugGui.Name = "DebugConsole"
-    debugGui.Parent = playerGui
-
-    local debugFrame = Instance.new("Frame")
-    debugFrame.Size = UDim2.new(0.8, 0, 0.3, 0)
-    debugFrame.Position = UDim2.new(0.1, 0, 0.65, 0)
-    debugFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    debugFrame.BorderSizePixel = 2
-    debugFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
-    debugFrame.Parent = debugGui
-
-    local scrollFrame = Instance.new("ScrollingFrame")
-    scrollFrame.Size = UDim2.new(1, 0, 1, 0)
-    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-    scrollFrame.ScrollBarThickness = 8
-    scrollFrame.BackgroundTransparency = 1
-    scrollFrame.Parent = debugFrame
-
-    local layout = Instance.new("UIListLayout")
-    layout.SortOrder = Enum.SortOrder.LayoutOrder
-    layout.Parent = scrollFrame
-
-    local function log(message)
-        local label = Instance.new("TextLabel")
-        label.Size = UDim2.new(1, 0, 0, 20)
-        label.BackgroundTransparency = 1
-        label.TextColor3 = Color3.fromRGB(255, 255, 255)
-        label.TextSize = 14
-        label.Font = Enum.Font.SourceSans
-        label.Text = message
-        label.Parent = scrollFrame
-
-        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
-    end
-
-    return log
-end
-
--- Initialize Debug Console
-local log = createDebugConsole()
-
 -- Whitelist Data Structure
 local WhitelistSystem = {
     authorized = {
@@ -104,8 +57,8 @@ local WhitelistSystem = {
             return false, "User not found"
         end
         local decryptedKey = self:decrypt(userData.key)
-        log("Expected Decrypted Key: " .. decryptedKey)
-        log("Provided Key: " .. providedKey)
+        print("Expected Decrypted Key: " .. decryptedKey)
+        print("Provided Key: " .. providedKey)
         return decryptedKey == providedKey, "Key verification " .. (decryptedKey == providedKey and "successful" or "failed")
     end,
 }
@@ -232,31 +185,31 @@ local function initializeWhitelist()
         inputUserId = tonumber(inputUserId)
         if not inputUserId then
             statusLabel.Text = "Invalid User ID"
-            log("Invalid User ID: " .. tostring(inputUserId))
+            print("Invalid User ID: " .. tostring(inputUserId))
             return
         end
 
         local userData = WhitelistSystem.authorized[inputUserId]
         if not userData then
             statusLabel.Text = "User not whitelisted"
-            log("User not found in whitelist: " .. tostring(inputUserId))
+            print("User not found in whitelist: " .. tostring(inputUserId))
             return
         end
 
         local decryptedKey = WhitelistSystem:decrypt(userData.key)
-        log("Decrypted Key: " .. decryptedKey)
-        log("Expected Decrypted Key: " .. decryptedKey)
-        log("Provided Key: " .. inputKey)
+        print("Decrypted Key: " .. decryptedKey)
+        print("Expected Decrypted Key: " .. decryptedKey)
+        print("Provided Key: " .. inputKey)
         if inputKey ~= decryptedKey then
             statusLabel.Text = "Invalid Key"
-            log("Key mismatch: Entered - " .. inputKey .. ", Expected - " .. decryptedKey)
+            print("Key mismatch: Entered - " .. inputKey .. ", Expected - " .. decryptedKey)
             return
         end
 
         statusLabel.Text = "Authorization successful!"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
         WhitelistSystem.state[inputUserId] = true
-        log("User authorized successfully: " .. tostring(inputUserId))
+        print("User authorized successfully: " .. tostring(inputUserId))
         task.wait(1)
         screenGui:Destroy()
         runMainScript()
@@ -265,7 +218,7 @@ end
 
 -- Main script functionality
 function runMainScript()
-    log("Main script running...")
+    print("Main script running...")
     -- Add your main script logic here
 end
 
