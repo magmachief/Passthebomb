@@ -49,7 +49,7 @@ removeHitboxButton.Parent = mainFrame
 -- Icon Image at Top-Left
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 50, 0, 50) -- Icon size
-icon.Position = UDim2.new(0, 10, 0, 60) -- Adjusted position for visibility
+icon.Position = UDim2.new(0, 10, 0, 10) -- Adjusted position for visibility
 icon.Image = "rbxassetid://4483345998" -- Correct asset ID
 icon.BackgroundTransparency = 1 -- Transparent background
 icon.Parent = screenGui
@@ -60,9 +60,14 @@ local dragInput, mousePos, framePos
 
 local function startDrag(input)
     dragging = true
-    dragInput = input
     mousePos = input.Position
     framePos = mainFrame.Position
+
+    input.Changed:Connect(function()
+        if input.UserInputState == Enum.UserInputState.End then
+            dragging = false
+        end
+    end)
 end
 
 local function updateDrag(input)
@@ -72,25 +77,15 @@ local function updateDrag(input)
     end
 end
 
-local function stopDrag()
-    dragging = false
-end
-
 mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         startDrag(input)
     end
 end)
 
 mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement then
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
         updateDrag(input)
-    end
-end)
-
-mainFrame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        stopDrag()
     end
 end)
 
