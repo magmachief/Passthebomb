@@ -26,7 +26,7 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- Function to pass the bomb
+
 local function passBomb()
     if bombHolder == LocalPlayer and passToClosest then
         local closestPlayer = getClosestPlayer()
@@ -54,7 +54,6 @@ local function passBomb()
     end
 end
 
--- Function to remove hitbox (disable collision)
 local function removeHitbox()
     local player = LocalPlayer
     local char = player.Character or player.CharacterAdded:Wait()
