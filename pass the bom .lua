@@ -1,4 +1,3 @@
-local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
@@ -217,7 +216,7 @@ autoPassBombButton.MouseButton1Click:Connect(function()
                         local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                         local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
                         if humanoid then
-                            local path = PathfindingService:CreatePath({
+  local path = PathfindingService:CreatePath({
                                 AgentRadius = 2,
                                 AgentHeight = 5,
                                 AgentCanJump = true,
