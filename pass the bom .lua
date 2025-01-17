@@ -16,7 +16,7 @@ local function getClosestPlayer()
     local shortestDistance = math.huge
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player ~= bombHolder and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and not player.Character:FindFirstChild("Bomb") then
             local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
@@ -54,74 +54,8 @@ local function passBomb()
     end
 end
 
-local function removeHitbox()
-    local player = LocalPlayer
-    local char = player.Character or player.CharacterAdded:Wait()
-
-    if RemoveHitboxEnabled then
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                part.CanCollide = false
-            end
-        end
-    else
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
-                part.CanCollide = true
-            end
-        end
-    end
-end
-
-local function antiSlippery()
-    local player = LocalPlayer
-    local char = player.Character or player.CharacterAdded:Wait()
-
-    if AntiSlipperyEnabled then
-        spawn(function()
-            while AntiSlipperyEnabled do
-                for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Name ~= "Torso" and part.Name ~= "Head" then
-                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                    end
-                end
-                wait(0.1)
-            end
-        end)
-    else
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Name ~= "Torso" and part.Name ~= "Head" then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-            end
-        end
-    end
-end
-
-local function updateBombHolder()
-    for _, player in pairs(Players:GetPlayers()) do
-        if player.Character and player.Character:FindFirstChild("Bomb") then
-            bombHolder = player
-            break
-        end
-    end
-end
-
-RunService.Heartbeat:Connect(function()
-    updateBombHolder()
-    if bombHolder == LocalPlayer and AutoPassEnabled then
-        passBomb()
-    end
-    
-    if AntiSlipperyEnabled then
-        antiSlippery()
-    end
-    if RemoveHitboxEnabled then
-        removeHitbox()
-    end
-end)
-
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SuperTechMenu"
+screenGui.Name = "YonkaiMenu"
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
@@ -139,7 +73,7 @@ corner.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
-titleLabel.Text = "Super Tech Menu"
+titleLabel.Text = "Yonkai Menu"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.BackgroundTransparency = 1
 titleLabel.TextSize = 28
@@ -188,14 +122,14 @@ autoPassBombCorner.Parent = autoPassBombButton
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 50, 0, 50)
 icon.Position = UDim2.new(0, 10, 0, 10)
-icon.Image = "rbxassetid://4483345998"
+icon.Image = "rbxassetid://6031075938" -- Gojo icon asset ID
 icon.BackgroundTransparency = 1
 icon.Parent = screenGui
 
 local toggleButton = Instance.new("ImageButton")
 toggleButton.Size = UDim2.new(0, 50, 0, 50)
 toggleButton.Position = UDim2.new(0, 20, 0, 20)
-toggleButton.Image = "rbxassetid://4483345998"
+toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon asset ID
 toggleButton.BackgroundTransparency = 1
 toggleButton.Parent = screenGui
 
@@ -219,18 +153,89 @@ end)
 antiSlipperyButton.MouseButton1Click:Connect(function()
     AntiSlipperyEnabled = not AntiSlipperyEnabled
     antiSlipperyButton.Text = "Anti-Slippery: " .. (AntiSlipperyEnabled and "ON" or "OFF")
-    antiSlippery()
+    if AntiSlipperyEnabled then
+        spawn(function()
+            local player = Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            while AntiSlipperyEnabled do
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                    end
+                end
+                wait(0.1)
+            end
+        end)
+    else
+        local player = Players.LocalPlayer
+        local character = player.Character or player.CharacterAdded:Wait()
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
+            end
+        end
+    end
 end)
 
 removeHitboxButton.MouseButton1Click:Connect(function()
     RemoveHitboxEnabled = not RemoveHitboxEnabled
     removeHitboxButton.Text = "Remove Hitbox: " .. (RemoveHitboxEnabled and "ON" or "OFF")
-    removeHitbox()
+    if RemoveHitboxEnabled then
+        local LocalPlayer = Players.LocalPlayer
+        local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local function removeCollisionPart(character)
+            for destructionIteration = 1, 100 do
+                wait()
+                pcall(function()
+                    character:WaitForChild("CollisionPart"):Destroy()
+                end)
+            end
+        end
+        removeCollisionPart(Character)
+        LocalPlayer.CharacterAdded:Connect(function(character)
+            removeCollisionPart(character)
+        end)
+    end
 end)
 
 autoPassBombButton.MouseButton1Click:Connect(function()
     AutoPassEnabled = not AutoPassEnabled
     autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
+    if AutoPassEnabled then
+        game:GetService("RunService").Stepped:Connect(function()
+            if not AutoPassEnabled then return end
+            pcall(function()
+                if LocalPlayer.Backpack:FindFirstChild("Bomb") then
+                    LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
+                end
+
+                local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+                if Bomb then
+                    local BombEvent = Bomb:FindFirstChild("RemoteEvent")
+                    local closestPlayer = getClosestPlayer()
+                    if closestPlayer and closestPlayer.Character then
+                        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                        if humanoid then
+                            local path = PathfindingService:CreatePath({
+                                AgentRadius = 2,
+                                AgentHeight = 5,
+                                AgentCanJump = true,
+                                AgentJumpHeight = 10,
+                                AgentMaxSlope = 45,
+                            })
+                            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+                            for _, waypoint in ipairs(path:GetWaypoints()) do
+                                humanoid:MoveTo(waypoint.Position)
+                                humanoid.MoveToFinished:Wait()
+                            end
+                        end
+                        BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                    end
+                end
+            end)
+        end)
+    end
 end)
 
-print("Pass The Bomb Script Loaded with Enhanced Super Tech Menu")
+print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
