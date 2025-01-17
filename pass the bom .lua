@@ -53,6 +53,14 @@ removeHitboxButton.TextSize = 18
 removeHitboxButton.TextButtonMode = Enum.TextButtonMode.Border
 removeHitboxButton.Parent = mainFrame
 
+-- Icon Image at top-left
+local icon = Instance.new("ImageLabel")
+icon.Size = UDim2.new(0, 50, 0, 50)  -- Size of the icon
+icon.Position = UDim2.new(0, 10, 0, 60)  -- Positioned in the top left, slightly lowered
+icon.Image = "rbxassetid://1234567890"  -- Replace with your actual image asset ID
+icon.BackgroundTransparency = 1  -- Make the background transparent
+icon.Parent = screenGui
+
 -- Function to toggle Anti-Slippery
 local function toggleAntiSlippery()
     antiSlipperyEnabled = not antiSlipperyEnabled
@@ -108,4 +116,4 @@ RunService.Heartbeat:Connect(function()
     removeHitbox()
 end)
 
-print("Super Tech Menu Loaded with Anti-Slippery and No Hitbox options!")
+print("Super Tech Menu Loaded with Anti-Slippery and No Hitbox options, with Icon!")
