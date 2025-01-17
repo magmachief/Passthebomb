@@ -10,7 +10,7 @@ local WhitelistSystem = {
         -- Add your whitelisted user IDs here
         [123456789] = {
             key = "Volleyball2007",
-            expiry = "2025-02-17", -- YYYY-MM-DD format
+            expiry = "2030-02-17", -- YYYY-MM-DD format
             tier = "premium"
         },
         -- Add more users as needed
