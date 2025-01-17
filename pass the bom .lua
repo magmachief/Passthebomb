@@ -57,7 +57,7 @@ removeHitboxButton.Parent = mainFrame
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 50, 0, 50)  -- Icon size
 icon.Position = UDim2.new(0, 10, 0, 60)  -- Position slightly lower to avoid clashing with system icons
-icon.Image = "rbxassetid://1234567890"  -- Replace with your actual image asset ID (upload your image to Roblox)
+icon.Image = "rbxassetid://4483345998"  -- Replace with your actual image asset ID (upload your image to Roblox)
 icon.BackgroundTransparency = 1  -- Make the background transparent
 icon.Parent = screenGui
 
