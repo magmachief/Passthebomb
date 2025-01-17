@@ -4,18 +4,19 @@ local Players = game:GetService("Players")
 
 local KEY = "Volleyball2007"
 
--- Whitelist data structure
+-- Whitelist Data Structure
 local WhitelistSystem = {
     authorized = {
         [123456789] = {
-            key = "Znpo~nZnn~ppo",  -- Encrypted key for "Volleyball2007"
-            expiry = "2030-02-17",  -- YYYY-MM-DD format
+            key = "Znpo~nZnn~ppo", -- Encrypted key for "Volleyball2007"
+            expiry = "2030-02-17", -- YYYY-MM-DD format
             tier = "premium"
         },
         -- Add more users as needed
     },
     
-    -- Encryption functions
+    state = {}, -- Tracks authenticated users
+
     encrypt = function(self, data)
         local encrypted = ""
         for i = 1, #data do
@@ -24,188 +25,132 @@ local WhitelistSystem = {
         end
         return encrypted
     end,
-    
+
     decrypt = function(self, data)
         return self:encrypt(data) -- XOR encryption is reversible
     end,
-    
-    -- Timestamp validation
+
     validateTimestamp = function(self, timestamp)
         local currentTime = os.time()
         local userTime = 0
-        
-        -- Convert YYYY-MM-DD to timestamp
         local year, month, day = timestamp:match("(%d+)-(%d+)-(%d+)")
         if year and month and day then
-            userTime = os.time({year=year, month=month, day=day})
+            userTime = os.time({year = year, month = month, day = day})
         end
-        
         return currentTime < userTime
     end,
-    
-    -- Check if user is authorized
+
     checkAuthorization = function(self, userId)
         local userData = self.authorized[userId]
         if not userData then
             return false, "User not whitelisted"
         end
-        
-        -- Check expiry
         if not self:validateTimestamp(userData.expiry) then
             return false, "Whitelist expired"
         end
-        
         return true, userData.tier
     end,
-    
-    -- Add new user to whitelist
-    addUser = function(self, userId, key, expiryDate, tier)
-        if type(userId) ~= "number" then
-            return false, "Invalid user ID"
-        end
-        
-        self.authorized[userId] = {
-            key = self:encrypt(key),
-            expiry = expiryDate,
-            tier = tier or "standard"
-        }
-        
-        return true, "User added successfully"
-    end,
-    
-    -- Remove user from whitelist
-    removeUser = function(self, userId)
-        if self.authorized[userId] then
-            self.authorized[userId] = nil
-            return true, "User removed successfully"
-        end
-        return false, "User not found"
-    end,
-    
-    -- Verify key
+
     verifyKey = function(self, userId, providedKey)
         local userData = self.authorized[userId]
         if not userData then
             return false, "User not found"
         end
-        
         local decryptedKey = self:decrypt(userData.key)
         return decryptedKey == providedKey, "Key verification " .. (decryptedKey == providedKey and "successful" or "failed")
-    end
+    end,
 }
--- Function to create the user ID and key input GUI
+
+-- Function to create the user input GUI
 local function createUserInputGui()
     local player = Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
-    
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "UserInputGui"
     screenGui.Parent = playerGui
-    
+
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(0, 300, 0, 250)
     frame.Position = UDim2.new(0.5, -150, 0.5, -125)
     frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    frame.BorderSizePixel = 2
-    frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
     frame.Parent = screenGui
-    
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0.1, 0)
-    corner.Parent = frame
-    
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
-    titleLabel.Text = "Enter User ID and Access Key"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.TextSize = 20
-    titleLabel.Font = Enum.Font.SourceSansBold
-    titleLabel.Parent = frame
-    
+
     local userIdInput = Instance.new("TextBox")
     userIdInput.Size = UDim2.new(0.8, 0, 0.2, 0)
     userIdInput.Position = UDim2.new(0.1, 0, 0.25, 0)
-    userIdInput.PlaceholderText = "Enter your User ID here"
+    userIdInput.PlaceholderText = "Enter User ID here"
     userIdInput.Text = ""
-    userIdInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    userIdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    userIdInput.TextSize = 18
-    userIdInput.Font = Enum.Font.SourceSans
     userIdInput.Parent = frame
-    
+
     local keyInput = Instance.new("TextBox")
     keyInput.Size = UDim2.new(0.8, 0, 0.2, 0)
     keyInput.Position = UDim2.new(0.1, 0, 0.5, 0)
-    keyInput.PlaceholderText = "Enter your key here"
+    keyInput.PlaceholderText = "Enter Key here"
     keyInput.Text = ""
-    keyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
-    keyInput.TextSize = 18
-    keyInput.Font = Enum.Font.SourceSans
     keyInput.Parent = frame
-    
+
     local submitButton = Instance.new("TextButton")
     submitButton.Size = UDim2.new(0.8, 0, 0.2, 0)
     submitButton.Position = UDim2.new(0.1, 0, 0.75, 0)
     submitButton.Text = "Submit"
-    submitButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
-    submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    submitButton.TextSize = 18
-    submitButton.Font = Enum.Font.SourceSans
     submitButton.Parent = frame
-    local submitCorner = Instance.new("UICorner")
-    submitCorner.CornerRadius = UDim.new(0.1, 0)
-    submitCorner.Parent = submitButton
-    
+
     return screenGui, userIdInput, keyInput, submitButton
 end
--- Function to initialize whitelist and check authorization
+
+-- Function to initialize whitelist and verify authorization
 local function initializeWhitelist()
-    local function verifyUserInput(userId, key)
-        userId = tonumber(userId)
-        if not userId then
+    local player = Players.LocalPlayer
+    local userId = player.UserId
+
+    -- Skip authorization if already authorized
+    if WhitelistSystem.state[userId] then
+        runMainScript()
+        return
+    end
+
+    -- Function to verify user input
+    local function verifyUserInput(inputUserId, inputKey)
+        inputUserId = tonumber(inputUserId)
+        if not inputUserId then
             print("Invalid User ID")
             return false
         end
-        
-        local success, tierOrError = WhitelistSystem:checkAuthorization(userId)
+
+        local success, tierOrError = WhitelistSystem:checkAuthorization(inputUserId)
         if not success then
-            print("Unauthorized access: " .. tierOrError)
+            print("Unauthorized: " .. tierOrError)
             return false
         end
-        
-        local keyValid, message = WhitelistSystem:verifyKey(userId, key)
-        if not keyValid then
-            print("Invalid key: " .. message)
+
+        local validKey, message = WhitelistSystem:verifyKey(inputUserId, inputKey)
+        if not validKey then
+            print("Invalid Key: " .. message)
             return false
         end
-        
+
+        WhitelistSystem.state[inputUserId] = true
         print("User authorized successfully - Tier: " .. tierOrError)
         return true
     end
-    
+
+    -- Show GUI for user input
     local screenGui, userIdInput, keyInput, submitButton = createUserInputGui()
-    
+
     submitButton.MouseButton1Click:Connect(function()
-        local userId = userIdInput.Text
-        local key = keyInput.Text
-        if verifyUserInput(userId, key) then
+        if verifyUserInput(userIdInput.Text, keyInput.Text) then
             screenGui:Destroy()
             runMainScript()
         else
-            print("User ID or Key verification failed")
+            print("Authorization failed")
         end
     end)
-    
-    return true
 end
 
--- Initialize whitelist system at the start of your script
-if not initializeWhitelist() then
-    return -- Exit if not whitelisted
-end
-local function runMainScript()
+-- Main Script Execution
+function runMainScript()
+    print("Main script running...")
+    
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
@@ -444,7 +389,8 @@ autoPassBombButton.MouseButton1Click:Connect(function()
         end)
     end
 end)
-
 print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
 end
 
+-- Start Whitelist Initialization
+initializeWhitelist()
