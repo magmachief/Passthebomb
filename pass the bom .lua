@@ -9,7 +9,7 @@ local WhitelistSystem = {
     authorized = {
         -- Add your whitelisted user IDs here
         [123456789] = {
-            key = "user_specific_key_1",
+            key = "Volleyball2007",
             expiry = "2025-02-17", -- YYYY-MM-DD format
             tier = "premium"
         },
@@ -182,6 +182,8 @@ local function initializeWhitelist()
         local key = keyInput.Text
         if verifyKeyInput(key) then
             screenGui:Destroy()
+            -- Run the main script if the key is verified
+            runMainScript()
         end
     end)
     
@@ -192,7 +194,7 @@ end
 if not initializeWhitelist() then
     return -- Exit if not whitelisted
 end
--- Your original script starts here
+local function runMainScript()
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
@@ -433,3 +435,5 @@ autoPassBombButton.MouseButton1Click:Connect(function()
 end)
 
 print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
+end
+
