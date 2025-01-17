@@ -1,6 +1,84 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
+local bombHolder = nil
+
+-- Settings --
+local bombPassDistance = 10 -- Distance to auto-pass the bomb
+local passToClosest = true -- Automatically pass the bomb to the closest player
+
+-- Function to get the closest player
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+-- Function to pass the bomb
+local function passBomb()
+    if bombHolder == LocalPlayer and passToClosest then
+        local closestPlayer = getClosestPlayer()
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            -- Simulate passing the bomb (this should be replaced with actual game logic)
+            bombHolder = closestPlayer
+            print("Bomb passed to:", closestPlayer.Name)
+        end
+    end
+end
+
+-- Function to remove hitbox (disable collision)
+local function removeHitbox()
+    if LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end
+
+-- Function to apply anti-slippery (no sliding)
+local function antiSlippery()
+    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        local humanoid = LocalPlayer.Character.Humanoid
+        humanoid.UseJumpPower = false
+        humanoid.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)  -- Zero friction for no slipping
+    end
+end
+
+-- Detect bomb holder changes
+local function updateBombHolder()
+    for _, player in pairs(Players:GetPlayers()) do
+        if player.Character and player.Character:FindFirstChild("Bomb") then
+            bombHolder = player
+            break
+        end
+    end
+end
+
+-- Main loop
+RunService.Heartbeat:Connect(function()
+    updateBombHolder()
+    if bombHolder == LocalPlayer then
+        passBomb()
+    end
+    
+    -- Apply anti-slippery and remove hitbox
+    antiSlippery()
+    removeHitbox()
+end)
 
 -- GUI Elements --
 local screenGui = Instance.new("ScreenGui")
@@ -13,6 +91,7 @@ mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200) -- Centered
 mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
 mainFrame.BorderSizePixel = 2
 mainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+mainFrame.Visible = false
 mainFrame.Parent = screenGui
 
 local titleLabel = Instance.new("TextLabel")
@@ -54,38 +133,29 @@ icon.Image = "rbxassetid://4483345998" -- Correct asset ID
 icon.BackgroundTransparency = 1 -- Transparent background
 icon.Parent = screenGui
 
--- Dragging functionality for the menu
-local dragging = false
-local dragInput, mousePos, framePos
+-- Toggle Button for Menu
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Image = "rbxassetid://4483345998"
+toggleButton.BackgroundTransparency = 1
+toggleButton.Parent = screenGui
 
-local function startDrag(input)
-    dragging = true
-    mousePos = input.Position
-    framePos = mainFrame.Position
+-- Animations for Menu
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-    input.Changed:Connect(function()
-        if input.UserInputState == Enum.UserInputState.End then
-            dragging = false
-        end
-    end)
-end
-
-local function updateDrag(input)
-    if dragging then
-        local delta = input.Position - mousePos
-        mainFrame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
-    end
-end
-
-mainFrame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        startDrag(input)
-    end
-end)
-
-mainFrame.InputChanged:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        updateDrag(input)
+toggleButton.MouseButton1Click:Connect(function()
+    if mainFrame.Visible then
+        local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -150, 0.5, -500)})
+        tween:Play()
+        tween.Completed:Connect(function()
+            mainFrame.Visible = false
+        end)
+    else
+        mainFrame.Position = UDim2.new(0.5, -150, 0.5, -500)
+        mainFrame.Visible = true
+        local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -150, 0.5, -200)})
+        tween:Play()
     end
 end)
 
@@ -103,4 +173,4 @@ removeHitboxButton.MouseButton1Click:Connect(function()
     removeHitboxButton.Text = "Remove Hitbox: " .. (removeHitboxEnabled and "ON" or "OFF")
 end)
 
-print("Super Tech Menu Loaded Successfully!")
+print("Pass The Bomb Script Loaded with Anti-Slippery and No Hitbox")
