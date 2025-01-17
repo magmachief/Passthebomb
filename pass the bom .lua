@@ -5,14 +5,12 @@ local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
 local bombHolder = nil
 
--- Settings --
-local bombPassDistance = 10 -- Distance to auto-pass the bomb
-local passToClosest = true -- Automatically pass the bomb to the closest player
+local bombPassDistance = 10
+local passToClosest = true
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 
--- Function to get the closest player who isn't holding the bomb
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -36,7 +34,6 @@ local function passBomb()
         if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
             if distance <= bombPassDistance then
-                -- Move the bomb to the closest player
                 local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
                 if bomb then
                     local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
@@ -62,14 +59,14 @@ local function removeHitbox()
     local char = player.Character or player.CharacterAdded:Wait()
 
     if RemoveHitboxEnabled then
-        for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                 part.CanCollide = false
             end
         end
     else
-        for _, part in pairs(char:GetChildren()) do
-            if part:IsA("BasePart") then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" then
                 part.CanCollide = true
             end
         end
@@ -79,12 +76,12 @@ end
 local function antiSlippery()
     local player = LocalPlayer
     local char = player.Character or player.CharacterAdded:Wait()
-    
+
     if AntiSlipperyEnabled then
         spawn(function()
             while AntiSlipperyEnabled do
                 for _, part in pairs(char:GetDescendants()) do
-                    if part:IsA("BasePart") then
+                    if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Name ~= "Torso" and part.Name ~= "Head" then
                         part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
                     end
                 end
@@ -93,14 +90,13 @@ local function antiSlippery()
         end)
     else
         for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
+            if part:IsA("BasePart") and part.Name ~= "HumanoidRootPart" and part.Name ~= "Torso" and part.Name ~= "Head" then
                 part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
             end
         end
     end
 end
 
--- Detect bomb holder changes
 local function updateBombHolder()
     for _, player in pairs(Players:GetPlayers()) do
         if player.Character and player.Character:FindFirstChild("Bomb") then
@@ -110,14 +106,12 @@ local function updateBombHolder()
     end
 end
 
--- Main loop
 RunService.Heartbeat:Connect(function()
     updateBombHolder()
     if bombHolder == LocalPlayer and AutoPassEnabled then
         passBomb()
     end
     
-    -- Apply anti-slippery and remove hitbox if enabled
     if AntiSlipperyEnabled then
         antiSlippery()
     end
@@ -126,14 +120,13 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- GUI Elements --
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "YonKai Mod"
+screenGui.Name = "SuperTechMenu"
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 350, 0, 450) -- Adjusted for mobile
-mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225) -- Centered
+mainFrame.Size = UDim2.new(0, 350, 0, 450)
+mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
 mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 mainFrame.BorderSizePixel = 2
 mainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
@@ -145,7 +138,7 @@ corner.CornerRadius = UDim.new(0.1, 0)
 corner.Parent = mainFrame
 
 local titleLabel = Instance.new("TextLabel")
-titleLabel.Size = UDim2.new(1, 0, 0.15, 0) -- Title takes 15% of height
+titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
 titleLabel.Text = "Super Tech Menu"
 titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleLabel.BackgroundTransparency = 1
@@ -153,9 +146,8 @@ titleLabel.TextSize = 28
 titleLabel.Font = Enum.Font.SourceSansBold
 titleLabel.Parent = mainFrame
 
--- Anti-Slippery Toggle Button
 local antiSlipperyButton = Instance.new("TextButton")
-antiSlipperyButton.Size = UDim2.new(0.8, 0, 0.15, 0) -- Adjusted for visibility
+antiSlipperyButton.Size = UDim2.new(0.8, 0, 0.15, 0)
 antiSlipperyButton.Position = UDim2.new(0.1, 0, 0.2, 0)
 antiSlipperyButton.Text = "Anti-Slippery: OFF"
 antiSlipperyButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
@@ -167,7 +159,6 @@ local antiSlipperyCorner = Instance.new("UICorner")
 antiSlipperyCorner.CornerRadius = UDim.new(0.1, 0)
 antiSlipperyCorner.Parent = antiSlipperyButton
 
--- Remove Hitbox Toggle Button
 local removeHitboxButton = Instance.new("TextButton")
 removeHitboxButton.Size = UDim2.new(0.8, 0, 0.15, 0)
 removeHitboxButton.Position = UDim2.new(0.1, 0, 0.4, 0)
@@ -181,7 +172,6 @@ local removeHitboxCorner = Instance.new("UICorner")
 removeHitboxCorner.CornerRadius = UDim.new(0.1, 0)
 removeHitboxCorner.Parent = removeHitboxButton
 
--- Auto Pass Bomb Toggle Button
 local autoPassBombButton = Instance.new("TextButton")
 autoPassBombButton.Size = UDim2.new(0.8, 0, 0.15, 0)
 autoPassBombButton.Position = UDim2.new(0.1, 0, 0.6, 0)
@@ -195,15 +185,13 @@ local autoPassBombCorner = Instance.new("UICorner")
 autoPassBombCorner.CornerRadius = UDim.new(0.1, 0)
 autoPassBombCorner.Parent = autoPassBombButton
 
--- Icon Image at Top-Left
 local icon = Instance.new("ImageLabel")
-icon.Size = UDim2.new(0, 50, 0, 50) -- Icon size
-icon.Position = UDim2.new(0, 10, 0, 10) -- Adjusted position for visibility
-icon.Image = "rbxassetid://4483345998" -- Correct asset ID
-icon.BackgroundTransparency = 1 -- Transparent background
+icon.Size = UDim2.new(0, 50, 0, 50)
+icon.Position = UDim2.new(0, 10, 0, 10)
+icon.Image = "rbxassetid://4483345998"
+icon.BackgroundTransparency = 1
 icon.Parent = screenGui
 
--- Toggle Button for Menu
 local toggleButton = Instance.new("ImageButton")
 toggleButton.Size = UDim2.new(0, 50, 0, 50)
 toggleButton.Position = UDim2.new(0, 20, 0, 20)
@@ -211,7 +199,6 @@ toggleButton.Image = "rbxassetid://4483345998"
 toggleButton.BackgroundTransparency = 1
 toggleButton.Parent = screenGui
 
--- Animations for Menu
 local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
 toggleButton.MouseButton1Click:Connect(function()
@@ -246,4 +233,4 @@ autoPassBombButton.MouseButton1Click:Connect(function()
     autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
 end)
 
-print("Pass The Bomb Script Loaded with Enhanced A Cool menu")
+print("Pass The Bomb Script Loaded with Enhanced Super Tech Menu")
