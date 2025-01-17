@@ -59,9 +59,8 @@ local PlayerDodgeDistance = 15
 local CollectCoinsEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
-local AutoPassEnabled = false
+local AutoPassEnabled = true
 local UseRandomPassing = false            -- Determines whether to pick a random target or first in list
-local PreferredTargets = {"PlayerName1"}  -- Replace with player names you want to prioritize
 
 -- Additional Features
 local SecureSpinEnabled = false
@@ -135,95 +134,6 @@ logDisplay = ConsoleTab:AddParagraph("Execution Logs", "")
 refreshLogDisplay()
 
 --========================--
---   AUTO PASS BOMB LOGIC --
---========================--
-
--- Returns two lists: valid preferred targets, plus fallback players within range
-local function getValidPlayers(bombTimeLeft)
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then
-        return {}, {}
-    end
-
-    local validPreferred = {}
-    local fallbackList = {}
-    local localPos = char.HumanoidRootPart.Position
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local character = player.Character
-            if character and character:FindFirstChild("HumanoidRootPart") and not character:FindFirstChild("Bomb") then
-                local dist = (localPos - character.HumanoidRootPart.Position).magnitude
-                if dist <= BombPassRange then
-                    -- If there's plenty of time, prefer specific targets
-                    if bombTimeLeft > ShortFuseThreshold then
-                        if table.find(PreferredTargets, player.Name) then
-                            table.insert(validPreferred, player)
-                        else
-                            table.insert(fallbackList, player)
-                        end
-                    else
-                        -- If time is short, treat everyone as fallback
-                        table.insert(fallbackList, player)
-                    end
-                end
-            end
-        end
-    end
-
-    return validPreferred, fallbackList
-end
-
--- Function to pass the bomb to a chosen player
-local function passBombIfNeeded()
-    local char = LocalPlayer.Character
-    if not char then return end
-
-    local bomb = char:FindFirstChild("Bomb")
-    if not bomb then return end
-
-    local bombTimeValue = bomb:FindFirstChild("BombTimeLeft")
-    local bombTimeLeft = bombTimeValue and bombTimeValue.Value or 9999
-
-    -- If the bomb is about to explode, pass as soon as possible
-    local BombEvent = bomb:FindFirstChild("RemoteEvent")
-    if not BombEvent then return end
-
-    local validPreferred, fallbackList = getValidPlayers(bombTimeLeft)
-
-    -- If we have valid preferred targets and time left
-    if #validPreferred > 0 then
-        local chosen
-        if UseRandomPassing then
-            chosen = validPreferred[math.random(#validPreferred)]
-        else
-            chosen = validPreferred[1]
-        end
-
-        if chosen.Character and chosen.Character:FindFirstChild("CollisionPart") then
-            BombEvent:FireServer(chosen.Character, chosen.Character.CollisionPart)
-            logMessage("Bomb passed to preferred target: " .. chosen.Name)
-            return
-        end
-    end
-
-    -- Otherwise, pass to fallback
-    if #fallbackList > 0 then
-        local fallback
-        if UseRandomPassing then
-            fallback = fallbackList[math.random(#fallbackList)]
-        else
-            fallback = fallbackList[1]
-        end
-
-        if fallback.Character and fallback.Character:FindFirstChild("CollisionPart") then
-            BombEvent:FireServer(fallback.Character, fallback.Character.CollisionPart)
-            logMessage("Bomb passed to fallback: " .. fallback.Name)
-        end
-    end
-end
-
---========================--
 --       AUTOMATED TAB    --
 --========================--
 
@@ -268,17 +178,6 @@ AutomatedTab:AddToggle({
     end
 })
 
--- Auto Pass Bomb Toggle
---[[
---AutomatedTab:AddToggle({
-    Name = "Auto Pass Bomb",
-    Default = AutoPassEnabled,
-    Callback = function(bool)
-        AutoPassEnabled = bool
-        logMessage("AutoPassEnabled set to " .. tostring(bool))
-    end
-})
-]]
 
 -- Use Random Passing Toggle
 AutomatedTab:AddToggle({
@@ -639,10 +538,6 @@ RunService.Stepped:Connect(function()
             pcall(collectCoins)
         end
 
-        -- Auto Pass Bomb
-        if AutoPassEnabled then
-            pcall(passBombIfNeeded)
-        end
     end
 end)
 
