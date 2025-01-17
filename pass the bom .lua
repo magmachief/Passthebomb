@@ -7,10 +7,9 @@ local KEY = "Volleyball2007"
 -- Whitelist data structure
 local WhitelistSystem = {
     authorized = {
-        -- Add your whitelisted user IDs here
         [123456789] = {
-            key = "Volleyball2007",
-            expiry = "2030-02-17", -- YYYY-MM-DD format
+            key = "Znpo~nZnn~ppo",  -- Encrypted key for "Volleyball2007"
+            expiry = "2030-02-17",  -- YYYY-MM-DD format
             tier = "premium"
         },
         -- Add more users as needed
@@ -94,18 +93,18 @@ local WhitelistSystem = {
         return decryptedKey == providedKey, "Key verification " .. (decryptedKey == providedKey and "successful" or "failed")
     end
 }
--- Function to create the key input GUI
-local function createKeyInputGui()
+-- Function to create the user ID and key input GUI
+local function createUserInputGui()
     local player = Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
     
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "KeyInputGui"
+    screenGui.Name = "UserInputGui"
     screenGui.Parent = playerGui
     
     local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 300, 0, 200)
-    frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    frame.Size = UDim2.new(0, 300, 0, 250)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -125)
     frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     frame.BorderSizePixel = 2
     frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
@@ -116,17 +115,28 @@ local function createKeyInputGui()
     corner.Parent = frame
     
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, 0, 0.2, 0)
-    titleLabel.Text = "Enter Access Key"
+    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
+    titleLabel.Text = "Enter User ID and Access Key"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.BackgroundTransparency = 1
-    titleLabel.TextSize = 24
+    titleLabel.TextSize = 20
     titleLabel.Font = Enum.Font.SourceSansBold
     titleLabel.Parent = frame
     
+    local userIdInput = Instance.new("TextBox")
+    userIdInput.Size = UDim2.new(0.8, 0, 0.2, 0)
+    userIdInput.Position = UDim2.new(0.1, 0, 0.25, 0)
+    userIdInput.PlaceholderText = "Enter your User ID here"
+    userIdInput.Text = ""
+    userIdInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    userIdInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    userIdInput.TextSize = 18
+    userIdInput.Font = Enum.Font.SourceSans
+    userIdInput.Parent = frame
+    
     local keyInput = Instance.new("TextBox")
     keyInput.Size = UDim2.new(0.8, 0, 0.2, 0)
-    keyInput.Position = UDim2.new(0.1, 0, 0.4, 0)
+    keyInput.Position = UDim2.new(0.1, 0, 0.5, 0)
     keyInput.PlaceholderText = "Enter your key here"
     keyInput.Text = ""
     keyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
@@ -137,7 +147,7 @@ local function createKeyInputGui()
     
     local submitButton = Instance.new("TextButton")
     submitButton.Size = UDim2.new(0.8, 0, 0.2, 0)
-    submitButton.Position = UDim2.new(0.1, 0, 0.7, 0)
+    submitButton.Position = UDim2.new(0.1, 0, 0.75, 0)
     submitButton.Text = "Submit"
     submitButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
     submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -148,42 +158,43 @@ local function createKeyInputGui()
     submitCorner.CornerRadius = UDim.new(0.1, 0)
     submitCorner.Parent = submitButton
     
-    return screenGui, keyInput, submitButton
+    return screenGui, userIdInput, keyInput, submitButton
 end
 -- Function to initialize whitelist and check authorization
 local function initializeWhitelist()
-    local player = Players.LocalPlayer
-    if not player then return false end
-    
-    local function verifyKeyInput(key)
-        local success, tierOrError = WhitelistSystem:checkAuthorization(player.UserId)
+    local function verifyUserInput(userId, key)
+        userId = tonumber(userId)
+        if not userId then
+            print("Invalid User ID")
+            return false
+        end
+        
+        local success, tierOrError = WhitelistSystem:checkAuthorization(userId)
         if not success then
-            -- Handle unauthorized access
-            player:Kick("Unauthorized access: " .. tierOrError)
+            print("Unauthorized access: " .. tierOrError)
             return false
         end
         
-        -- Additional security check with key verification
-        local keyValid, message = WhitelistSystem:verifyKey(player.UserId, key)
+        local keyValid, message = WhitelistSystem:verifyKey(userId, key)
         if not keyValid then
-            player:Kick("Invalid key: " .. message)
+            print("Invalid key: " .. message)
             return false
         end
         
-        -- Log successful authorization
         print("User authorized successfully - Tier: " .. tierOrError)
         return true
     end
     
-    -- Create and display the key input GUI
-    local screenGui, keyInput, submitButton = createKeyInputGui()
+    local screenGui, userIdInput, keyInput, submitButton = createUserInputGui()
     
     submitButton.MouseButton1Click:Connect(function()
+        local userId = userIdInput.Text
         local key = keyInput.Text
-        if verifyKeyInput(key) then
+        if verifyUserInput(userId, key) then
             screenGui:Destroy()
-            -- Run the main script if the key is verified
             runMainScript()
+        else
+            print("User ID or Key verification failed")
         end
     end)
     
