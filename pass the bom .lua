@@ -4,6 +4,7 @@
     2. Updates Log in the menu.
     3. Console tab to show execution logs.
     4. Retains original functionalities (Auto Dodge, Collect Coins, etc.).
+    5. Arrow indicator for bomb proximity.
 --]]
 
 --========================--
@@ -61,6 +62,7 @@ local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 local AutoPassEnabled = true
 local UseRandomPassing = false            -- Determines whether to pick a random target or first in list
+local ArrowIndicatorEnabled = false       -- Toggle for arrow indicator
 
 -- Additional Features
 local SecureSpinEnabled = false
@@ -82,6 +84,16 @@ local CollectionService = game:GetService("CollectionService")
 -- Player Character
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 
+-- Arrow Indicator
+local arrowIndicator = Instance.new("ImageLabel")
+arrowIndicator.Name = "ArrowIndicator"
+arrowIndicator.Size = UDim2.new(0, 50, 0, 50)
+arrowIndicator.Image = "rbxassetid://<YourArrowImageID>" -- Replace with your arrow image asset ID
+arrowIndicator.Position = UDim2.new(0.5, -25, 0, -70) -- Position it above the player's head
+arrowIndicator.BackgroundTransparency = 1
+arrowIndicator.Visible = false
+arrowIndicator.Parent = ScreenGui
+
 --========================--
 --   UPDATE / CHANGELOG   --
 --========================--
@@ -99,6 +111,7 @@ UpdateLogTab:AddParagraph("Changelog", [[
 3. Enhanced user interface with OrionLib advanced features.
 4. Improved Auto Collect Coins functionality.
 5. Added Auto Pass Closest Player functionality.
+6. Added arrow indicator for bomb proximity.
 ]])
 
 --========================--
@@ -177,7 +190,6 @@ AutomatedTab:AddToggle({
         logMessage("CollectCoinsEnabled set to " .. tostring(bool))
     end
 })
-
 
 -- Use Random Passing Toggle
 AutomatedTab:AddToggle({
@@ -268,7 +280,17 @@ AutomatedTab:AddToggle({
         end
     end
 })
-                     
+
+-- Arrow Indicator Toggle
+AutomatedTab:AddToggle({
+    Name = "Arrow Indicator",
+    Default = ArrowIndicatorEnabled,
+    Callback = function(bool)
+        ArrowIndicatorEnabled = bool
+        arrowIndicator.Visible = bool
+        logMessage("ArrowIndicatorEnabled set to " .. tostring(bool))
+    end
+})
 
 --========================--
 --       OTHERS TAB       --
@@ -512,8 +534,7 @@ local function collectCoins()
 
         -- Move to the coin's position using Pathfinding
         moveToTarget(closestCoin.Position)
-
-        -- Optional: Wait briefly to ensure collision scripts register the collection
+-- Optional: Wait briefly to ensure collision scripts register the collection
         wait(0.3)
         logMessage("Attempted to collect the coin.")
     else
@@ -538,6 +559,20 @@ RunService.Stepped:Connect(function()
             pcall(collectCoins)
         end
 
+        -- Arrow Indicator for Bomb Proximity
+        if ArrowIndicatorEnabled then
+            local bombCarrier = nil
+            for _, player in pairs(Players:GetPlayers()) do
+                if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Bomb") then
+                    local distance = (Character.HumanoidRootPart.Position - player.Character.HumanoidRootPart.Position).magnitude
+                    if distance <= PlayerDodgeDistance then
+                        bombCarrier = player
+                        break
+                    end
+                end
+            end
+            arrowIndicator.Visible = (bombCarrier ~= nil)
+        end
     end
 end)
 
