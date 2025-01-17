@@ -5,10 +5,14 @@ local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
 local bombHolder = nil
 
-local bombPassDistance = 10 
-local passToClosest = true
+-- Settings --
+local bombPassDistance = 10 -- Distance to auto-pass the bomb
+local passToClosest = true -- Automatically pass the bomb to the closest player
 local AutoPassEnabled = false
+local AntiSlipperyEnabled = false
+local RemoveHitboxEnabled = false
 
+-- Function to get the closest player who isn't holding the bomb
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -25,7 +29,6 @@ local function getClosestPlayer()
 
     return closestPlayer
 end
-
 
 local function passBomb()
     if bombHolder == LocalPlayer and passToClosest then
@@ -76,13 +79,18 @@ end
 local function antiSlippery()
     local player = LocalPlayer
     local char = player.Character or player.CharacterAdded:Wait()
-
+    
     if AntiSlipperyEnabled then
-        for _, part in pairs(char:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+        spawn(function()
+            while AntiSlipperyEnabled do
+                for _, part in pairs(char:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                    end
+                end
+                wait(0.1)
             end
-        end
+        end)
     else
         for _, part in pairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
@@ -102,12 +110,14 @@ local function updateBombHolder()
     end
 end
 
+-- Main loop
 RunService.Heartbeat:Connect(function()
     updateBombHolder()
     if bombHolder == LocalPlayer and AutoPassEnabled then
         passBomb()
     end
     
+    -- Apply anti-slippery and remove hitbox if enabled
     if AntiSlipperyEnabled then
         antiSlippery()
     end
@@ -218,10 +228,6 @@ toggleButton.MouseButton1Click:Connect(function()
         tween:Play()
     end
 end)
-
--- Button Toggle Functions
-local AntiSlipperyEnabled = false
-local RemoveHitboxEnabled = false
 
 antiSlipperyButton.MouseButton1Click:Connect(function()
     AntiSlipperyEnabled = not AntiSlipperyEnabled
