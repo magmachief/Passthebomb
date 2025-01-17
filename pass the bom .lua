@@ -104,6 +104,7 @@ local WhitelistSystem = {
             return false, "User not found"
         end
         local decryptedKey = self:decrypt(userData.key)
+        log("Decrypted Key: " .. decryptedKey)
         return decryptedKey == providedKey, "Key verification " .. (decryptedKey == providedKey and "successful" or "failed")
     end,
 }
