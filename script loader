@@ -1,12 +1,1 @@
--- Loadstring for the "Pass the Bomb" script
-local url = "https://raw.githubusercontent.com/magmachief/Passthebomb/main/pass%20the%20bom%20.lua?token=GHSAT0AAAAAAC5FUZWMWY2A5BEMLHWM6BHUZ4KVNEA"
-
-local success, result = pcall(function()
-    return loadstring(game:HttpGet(url))()
-end)
-
-if not success then
-    warn("Failed to load script: " .. tostring(result))
-else
-    print("Script loaded successfully!")
-end
+loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Passthebomb/main/pass%20the%20bom%20.lua"))()
