@@ -104,7 +104,8 @@ local WhitelistSystem = {
             return false, "User not found"
         end
         local decryptedKey = self:decrypt(userData.key)
-        log("Decrypted Key: " .. decryptedKey)
+        log("Expected Decrypted Key: " .. decryptedKey)
+        log("Provided Key: " .. providedKey)
         return decryptedKey == providedKey, "Key verification " .. (decryptedKey == providedKey and "successful" or "failed")
     end,
 }
@@ -172,6 +173,43 @@ local function createUserInputGui()
     statusLabel.Font = Enum.Font.SourceSansBold
     statusLabel.Parent = frame
 
+    -- Make the frame draggable
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+
+    local function update(input)
+        local delta = input.Position - dragStart
+        frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            dragStart = input.Position
+            startPos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    game:GetService("UserInputService").InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+
     return screenGui, userIdInput, keyInput, submitButton, statusLabel
 end
 
@@ -207,6 +245,8 @@ local function initializeWhitelist()
 
         local decryptedKey = WhitelistSystem:decrypt(userData.key)
         log("Decrypted Key: " .. decryptedKey)
+        log("Expected Decrypted Key: " .. decryptedKey)
+        log("Provided Key: " .. inputKey)
         if inputKey ~= decryptedKey then
             statusLabel.Text = "Invalid Key"
             log("Key mismatch: Entered - " .. inputKey .. ", Expected - " .. decryptedKey)
