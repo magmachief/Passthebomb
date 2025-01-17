@@ -3,6 +3,53 @@ local Players = game:GetService("Players")
 
 local KEY = "Volleyball2007"
 
+-- Debug Console Function
+local function createDebugConsole()
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+
+    local debugGui = Instance.new("ScreenGui")
+    debugGui.Name = "DebugConsole"
+    debugGui.Parent = playerGui
+
+    local debugFrame = Instance.new("Frame")
+    debugFrame.Size = UDim2.new(0.8, 0, 0.3, 0)
+    debugFrame.Position = UDim2.new(0.1, 0, 0.65, 0)
+    debugFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    debugFrame.BorderSizePixel = 2
+    debugFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    debugFrame.Parent = debugGui
+
+    local scrollFrame = Instance.new("ScrollingFrame")
+    scrollFrame.Size = UDim2.new(1, 0, 1, 0)
+    scrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
+    scrollFrame.ScrollBarThickness = 8
+    scrollFrame.BackgroundTransparency = 1
+    scrollFrame.Parent = debugFrame
+
+    local layout = Instance.new("UIListLayout")
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    layout.Parent = scrollFrame
+
+    local function log(message)
+        local label = Instance.new("TextLabel")
+        label.Size = UDim2.new(1, 0, 0, 20)
+        label.BackgroundTransparency = 1
+        label.TextColor3 = Color3.fromRGB(255, 255, 255)
+        label.TextSize = 14
+        label.Font = Enum.Font.SourceSans
+        label.Text = message
+        label.Parent = scrollFrame
+
+        scrollFrame.CanvasSize = UDim2.new(0, 0, 0, layout.AbsoluteContentSize.Y)
+    end
+
+    return log
+end
+
+-- Initialize Debug Console
+local log = createDebugConsole()
+
 -- Whitelist Data Structure
 local WhitelistSystem = {
     authorized = {
@@ -60,7 +107,7 @@ local WhitelistSystem = {
     end,
 }
 
--- Function to create the user input GUI with status feedback
+-- Function to create the user input GUI
 local function createUserInputGui()
     local player = Players.LocalPlayer
     local playerGui = player:WaitForChild("PlayerGui")
@@ -142,30 +189,33 @@ local function initializeWhitelist()
         local inputUserId = userIdInput.Text
         local inputKey = keyInput.Text
 
-        inputUserId = tonumber(inputUserId) -- Convert to number for validation
+        inputUserId = tonumber(inputUserId)
         if not inputUserId then
             statusLabel.Text = "Invalid User ID"
+            log("Invalid User ID: " .. tostring(inputUserId))
             return
         end
 
-        local success, tierOrError = WhitelistSystem:checkAuthorization(inputUserId)
-        if not success then
-            statusLabel.Text = "Authorization failed: " .. tierOrError
+        local userData = WhitelistSystem.authorized[inputUserId]
+        if not userData then
+            statusLabel.Text = "User not whitelisted"
+            log("User not found in whitelist: " .. tostring(inputUserId))
             return
         end
 
-        local validKey, message = WhitelistSystem:verifyKey(inputUserId, inputKey)
-        if not validKey then
-            statusLabel.Text = "Invalid Key: " .. message
+        local decryptedKey = WhitelistSystem:decrypt(userData.key)
+        log("Decrypted Key: " .. decryptedKey)
+        if inputKey ~= decryptedKey then
+            statusLabel.Text = "Invalid Key"
+            log("Key mismatch: Entered - " .. inputKey .. ", Expected - " .. decryptedKey)
             return
         end
 
-        -- Success
-        WhitelistSystem.state[userId] = true
         statusLabel.Text = "Authorization successful!"
-        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green for success
-
-        task.wait(1) -- Pause briefly to show success message
+        statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
+        WhitelistSystem.state[inputUserId] = true
+        log("User authorized successfully: " .. tostring(inputUserId))
+        task.wait(1)
         screenGui:Destroy()
         runMainScript()
     end)
@@ -173,7 +223,7 @@ end
 
 -- Main script functionality
 function runMainScript()
-    print("Main script running...")
+    log("Main script running...")
     
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
