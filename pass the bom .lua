@@ -128,7 +128,7 @@ end)
 
 -- GUI Elements --
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "SuperTechMenu"
+screenGui.Name = "YonKai Mod"
 screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
 local mainFrame = Instance.new("Frame")
@@ -246,4 +246,4 @@ autoPassBombButton.MouseButton1Click:Connect(function()
     autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
 end)
 
-print("Pass The Bomb Script Loaded with Enhanced Super Tech Menu")
+print("Pass The Bomb Script Loaded with Enhanced A Cool menu")
