@@ -1,157 +1,108 @@
--- Load dependencies
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local VirtualUser = game:GetService("VirtualUser")
 local LocalPlayer = Players.LocalPlayer
-local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-local Humanoid = Character:WaitForChild("Humanoid")
+local bombHolder = nil
 
--- Variables
-local AutoDodgePlayersEnabled = false
-local CollectCoinsEnabled = false
-local AntiAFKEnabled = false
-local AutoPassBombEnabled = false
+-- Settings --
+local bombPassDistance = 10
+local passToClosest = true
 
--- Logging function
-local function logMessage(message)
-    print("[Script]: " .. message)
+local antiSlipperyEnabled = false
+local removeHitboxEnabled = false
+
+-- GUI Elements --
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 300, 0, 200)
+mainFrame.Position = UDim2.new(0.5, -150, 0.5, -100)
+mainFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+mainFrame.BorderSizePixel = 2
+mainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+mainFrame.Parent = screenGui
+
+local titleLabel = Instance.new("TextLabel")
+titleLabel.Size = UDim2.new(1, 0, 0.1, 0)
+titleLabel.Text = "Super Tech Menu"
+titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleLabel.BackgroundTransparency = 1
+titleLabel.TextSize = 20
+titleLabel.Parent = mainFrame
+
+-- Anti-Slippery Toggle Button
+local antiSlipperyButton = Instance.new("TextButton")
+antiSlipperyButton.Size = UDim2.new(0.8, 0, 0.2, 0)
+antiSlipperyButton.Position = UDim2.new(0.1, 0, 0.2, 0)
+antiSlipperyButton.Text = "Anti-Slippery: OFF"
+antiSlipperyButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+antiSlipperyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+antiSlipperyButton.TextSize = 16
+antiSlipperyButton.Parent = mainFrame
+
+-- Remove Hitbox Toggle Button
+local removeHitboxButton = Instance.new("TextButton")
+removeHitboxButton.Size = UDim2.new(0.8, 0, 0.2, 0)
+removeHitboxButton.Position = UDim2.new(0.1, 0, 0.5, 0)
+removeHitboxButton.Text = "Remove Hitbox: OFF"
+removeHitboxButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+removeHitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+removeHitboxButton.TextSize = 16
+removeHitboxButton.Parent = mainFrame
+
+-- Function to toggle Anti-Slippery
+local function toggleAntiSlippery()
+    antiSlipperyEnabled = not antiSlipperyEnabled
+    if antiSlipperyEnabled then
+        antiSlipperyButton.Text = "Anti-Slippery: ON"
+    else
+        antiSlipperyButton.Text = "Anti-Slippery: OFF"
+    end
 end
 
--- Function to move to target position
-local function moveToTarget(position)
-    Character.HumanoidRootPart.CFrame = CFrame.new(position)
-end
--- Load GUI library
-local OrionLib = loadstring(game:HttpGet(('https://raw.githubusercontent.com/shlexware/Orion/main/source')))()
-local Window = OrionLib:MakeWindow({Name = "Game Helper", HidePremium = true, SaveConfig = true, ConfigFolder = "OrionConfig"})
-
--- Create a tab for main features
-local Tab = Window:MakeTab({
-    Name = "Main Features",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
--- Add toggles for features
-Tab:AddToggle({
-    Name = "Auto Dodge Players",
-    Default = false,
-    Callback = function(state)
-        AutoDodgePlayersEnabled = state
-        logMessage("Auto Dodge Players: " .. tostring(state))
+-- Function to toggle Remove Hitbox
+local function toggleRemoveHitbox()
+    removeHitboxEnabled = not removeHitboxEnabled
+    if removeHitboxEnabled then
+        removeHitboxButton.Text = "Remove Hitbox: ON"
+    else
+        removeHitboxButton.Text = "Remove Hitbox: OFF"
     end
-})
-
-Tab:AddToggle({
-    Name = "Collect Coins",
-    Default = false,
-    Callback = function(state)
-        CollectCoinsEnabled = state
-        logMessage("Collect Coins: " .. tostring(state))
-    end
-})
-
-Tab:AddToggle({
-    Name = "Anti-AFK",
-    Default = false,
-    Callback = function(state)
-        AntiAFKEnabled = state
-        if state then
-            logMessage("Anti-AFK activated.")
-        else
-            logMessage("Anti-AFK deactivated.")
-        end
-    end
-})
-
-Tab:AddToggle({
-    Name = "Auto Pass Bomb",
-    Default = false,
-    Callback = function(state)
-        AutoPassBombEnabled = state
-        logMessage("Auto Pass Bomb: " .. tostring(state))
-    end
-})
--- Auto Dodge Players
-RunService.Heartbeat:Connect(function()
-    if AutoDodgePlayersEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local enemyRoot = player.Character.HumanoidRootPart
-                local distance = (Character.HumanoidRootPart.Position - enemyRoot.Position).Magnitude
-                if distance < 10 then
-                    local dodgeDirection = (Character.HumanoidRootPart.Position - enemyRoot.Position).unit * 20
-                    local newPosition = Character.HumanoidRootPart.Position + dodgeDirection
-                    moveToTarget(newPosition)
-                    logMessage("Dodged " .. player.Name)
-                end
-            end
-        end
-    end
-end)
-
--- Collect Coins
-RunService.Heartbeat:Connect(function()
-    if CollectCoinsEnabled then
-        for _, coin in pairs(workspace:GetDescendants()) do
-            if coin:IsA("BasePart") and coin.Name == "Coin" then
-                moveToTarget(coin.Position)
-                logMessage("Collected coin at: " .. tostring(coin.Position))
-                wait(0.2)
-            end
-        end
-    end
-end)
-
--- Auto Pass Bomb
-RunService.Heartbeat:Connect(function()
-    if AutoPassBombEnabled then
-        local closestPlayer = nil
-        local closestDistance = math.huge
-
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local playerRoot = player.Character.HumanoidRootPart
-                local distance = (Character.HumanoidRootPart.Position - playerRoot.Position).Magnitude
-                if distance < closestDistance then
-                    closestDistance = distance
-                    closestPlayer = player
-                end
-            end
-        end
-
-        if closestPlayer and closestDistance <= 50 then -- Adjust distance threshold as needed
-            local bomb = Character:FindFirstChild("Bomb")
-            if bomb then
-                moveToTarget(closestPlayer.Character.HumanoidRootPart.Position)
-                logMessage("Passed bomb to: " .. closestPlayer.Name)
-            end
-        end
-    end
-end)
-
--- Anti-AFK
-LocalPlayer.Idled:Connect(function()
-    if AntiAFKEnabled then
-        VirtualUser:Button2Down(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-        VirtualUser:Button2Up(Vector2.new(0, 0), workspace.CurrentCamera.CFrame)
-        logMessage("Anti-AFK triggered.")
-    end
-end)
--- Cleanup function
-local function cleanup()
-    AutoDodgePlayersEnabled = false
-    CollectCoinsEnabled = false
-    AntiAFKEnabled = false
-    AutoPassBombEnabled = false
-    logMessage("All features disabled.")
 end
 
--- Add a stop button to the GUI
-Tab:AddButton({
-    Name = "Stop Script",
-    Callback = function()
-        cleanup()
-        OrionLib:Destroy()
+-- Connect button clicks to toggle functions
+antiSlipperyButton.MouseButton1Click:Connect(toggleAntiSlippery)
+removeHitboxButton.MouseButton1Click:Connect(toggleRemoveHitbox)
+
+-- Function to apply Anti-Slippery
+local function antiSlippery()
+    if antiSlipperyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        local humanoid = LocalPlayer.Character.Humanoid
+        humanoid.UseJumpPower = false
+        humanoid.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)  -- Zero friction for no slipping
     end
-})
+end
+
+-- Function to remove hitbox (disable collision)
+local function removeHitbox()
+    if removeHitboxEnabled and LocalPlayer.Character then
+        for _, part in pairs(LocalPlayer.Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+end
+
+-- Main loop to update settings
+RunService.Heartbeat:Connect(function()
+    if bombHolder == LocalPlayer then
+        passBomb()
+    end
+
+    -- Apply Anti-Slippery and Remove Hitbox based on toggles
+    antiSlippery()
+    removeHitbox()
+end)
+
+print("Super Tech Menu Loaded with Anti-Slippery and No Hitbox options!")
