@@ -1,5 +1,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
 local bombHolder = nil
@@ -7,6 +8,7 @@ local bombHolder = nil
 -- Settings --
 local bombPassDistance = 10 -- Distance to auto-pass the bomb
 local passToClosest = true -- Automatically pass the bomb to the closest player
+local AutoPassEnabled = false
 
 -- Function to get the closest player who isn't holding the bomb
 local function getClosestPlayer()
@@ -33,9 +35,18 @@ local function passBomb()
         if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
             if distance <= bombPassDistance then
-                -- Simulate passing the bomb (this should be replaced with actual game logic)
-                bombHolder = closestPlayer
-                print("Bomb passed to:", closestPlayer.Name)
+                -- Move the bomb to the closest player
+                local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
+                if bomb then
+                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
+                    tween:Play()
+                    tween.Completed:Connect(function()
+                        bomb.Parent = closestPlayer.Character
+                        print("Bomb passed to:", closestPlayer.Name)
+                    end)
+                end
             else
                 print("No players within bomb pass distance.")
             end
@@ -50,7 +61,7 @@ local function removeHitbox()
     local player = LocalPlayer
     local char = player.Character or player.CharacterAdded:Wait()
 
-    if removeHitboxEnabled then
+    if RemoveHitboxEnabled then
         for _, part in pairs(char:GetChildren()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
@@ -70,7 +81,7 @@ local function antiSlippery()
     local player = LocalPlayer
     local char = player.Character or player.CharacterAdded:Wait()
 
-    if antiSlipperyEnabled then
+    if AntiSlipperyEnabled then
         for _, part in pairs(char:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
@@ -98,15 +109,15 @@ end
 -- Main loop
 RunService.Heartbeat:Connect(function()
     updateBombHolder()
-    if bombHolder == LocalPlayer then
+    if bombHolder == LocalPlayer and AutoPassEnabled then
         passBomb()
     end
     
     -- Apply anti-slippery and remove hitbox if enabled
-    if antiSlipperyEnabled then
+    if AntiSlipperyEnabled then
         antiSlippery()
     end
-    if removeHitboxEnabled then
+    if RemoveHitboxEnabled then
         removeHitbox()
     end
 end)
@@ -205,5 +216,52 @@ removeHitboxButton.MouseButton1Click:Connect(function()
     removeHitboxButton.Text = "Remove Hitbox: " .. (removeHitboxEnabled and "ON" or "OFF")
     removeHitbox()
 end)
+
+-- Auto Pass Bomb Toggle
+local AutomatedTab = Window:MakeTab({Name = "Automated", Icon = "rbxassetid://4483345998", PremiumOnly = false})
+
+AutomatedTab:AddToggle({
+    Name = "Auto Pass Bomb",
+    Default = false,
+    Callback = function(bool)
+        AutoPassEnabled = bool
+        if AutoPassEnabled then
+            game:GetService("RunService").Stepped:Connect(function()
+                if not AutoPassEnabled then return end
+                pcall(function()
+                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
+                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
+                    end
+
+                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+                    if Bomb then
+                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
+                        local closestPlayer = getClosestPlayer()
+                        
+                        if closestPlayer and closestPlayer.Character then
+                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                            if humanoid then
+                                local path = PathfindingService:CreatePath({
+                                    AgentRadius = 2,
+                                    AgentHeight = 5,
+                                    AgentCanJump = true,
+                                    AgentJumpHeight = 10,
+                                    AgentMaxSlope = 45,
+                                })
+                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+                                for _, waypoint in ipairs(path:GetWaypoints()) do
+                                    humanoid:MoveTo(waypoint.Position)
+                                    humanoid.MoveToFinished:Wait()
+                                end
+                            end
+                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                        end
+                    end
+                end)
+            end)
+        end
+    end
+})
 
 print("Pass The Bomb Script Loaded with Anti-Slippery and No Hitbox")
