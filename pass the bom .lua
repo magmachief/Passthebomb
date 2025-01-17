@@ -5,12 +5,10 @@ local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
 local bombHolder = nil
 
--- Settings --
-local bombPassDistance = 10 -- Distance to auto-pass the bomb
-local passToClosest = true -- Automatically pass the bomb to the closest player
+local bombPassDistance = 10 
+local passToClosest = true
 local AutoPassEnabled = false
 
--- Function to get the closest player who isn't holding the bomb
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -76,7 +74,6 @@ local function removeHitbox()
     end
 end
 
--- Function to apply anti-slippery (no sliding)
 local function antiSlippery()
     local player = LocalPlayer
     local char = player.Character or player.CharacterAdded:Wait()
@@ -106,14 +103,12 @@ local function updateBombHolder()
     end
 end
 
--- Main loop
 RunService.Heartbeat:Connect(function()
     updateBombHolder()
     if bombHolder == LocalPlayer and AutoPassEnabled then
         passBomb()
     end
     
-    -- Apply anti-slippery and remove hitbox if enabled
     if AntiSlipperyEnabled then
         antiSlippery()
     end
