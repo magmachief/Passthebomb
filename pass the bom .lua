@@ -1,6 +1,6 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
+local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
 local bombHolder = nil
 
@@ -8,13 +8,13 @@ local bombHolder = nil
 local bombPassDistance = 10 -- Distance to auto-pass the bomb
 local passToClosest = true -- Automatically pass the bomb to the closest player
 
--- Function to get the closest player
+-- Function to get the closest player who isn't holding the bomb
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
 
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
+        if player ~= LocalPlayer and player ~= bombHolder and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
@@ -102,9 +102,13 @@ RunService.Heartbeat:Connect(function()
         passBomb()
     end
     
-    -- Apply anti-slippery and remove hitbox
-    antiSlippery()
-    removeHitbox()
+    -- Apply anti-slippery and remove hitbox if enabled
+    if antiSlipperyEnabled then
+        antiSlippery()
+    end
+    if removeHitboxEnabled then
+        removeHitbox()
+    end
 end)
 
 -- GUI Elements --
