@@ -31,19 +31,35 @@ local function passBomb()
     if bombHolder == LocalPlayer and passToClosest then
         local closestPlayer = getClosestPlayer()
         if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            -- Simulate passing the bomb (this should be replaced with actual game logic)
-            bombHolder = closestPlayer
-            print("Bomb passed to:", closestPlayer.Name)
+            local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance <= bombPassDistance then
+                -- Simulate passing the bomb (this should be replaced with actual game logic)
+                bombHolder = closestPlayer
+                print("Bomb passed to:", closestPlayer.Name)
+            else
+                print("No players within bomb pass distance.")
+            end
+        else
+            print("No valid closest player found.")
         end
     end
 end
 
 -- Function to remove hitbox (disable collision)
 local function removeHitbox()
-    if LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetChildren()) do
+    local player = LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+
+    if removeHitboxEnabled then
+        for _, part in pairs(char:GetChildren()) do
             if part:IsA("BasePart") then
                 part.CanCollide = false
+            end
+        end
+    else
+        for _, part in pairs(char:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
             end
         end
     end
@@ -51,10 +67,21 @@ end
 
 -- Function to apply anti-slippery (no sliding)
 local function antiSlippery()
-    if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        local humanoid = LocalPlayer.Character.Humanoid
-        humanoid.UseJumpPower = false
-        humanoid.CustomPhysicalProperties = PhysicalProperties.new(0, 0, 0)  -- Zero friction for no slipping
+    local player = LocalPlayer
+    local char = player.Character or player.CharacterAdded:Wait()
+
+    if antiSlipperyEnabled then
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+            end
+        end
+    else
+        for _, part in pairs(char:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
+            end
+        end
     end
 end
 
@@ -166,11 +193,13 @@ local removeHitboxEnabled = false
 antiSlipperyButton.MouseButton1Click:Connect(function()
     antiSlipperyEnabled = not antiSlipperyEnabled
     antiSlipperyButton.Text = "Anti-Slippery: " .. (antiSlipperyEnabled and "ON" or "OFF")
+    antiSlippery()
 end)
 
 removeHitboxButton.MouseButton1Click:Connect(function()
     removeHitboxEnabled = not removeHitboxEnabled
     removeHitboxButton.Text = "Remove Hitbox: " .. (removeHitboxEnabled and "ON" or "OFF")
+    removeHitbox()
 end)
 
 print("Pass The Bomb Script Loaded with Anti-Slippery and No Hitbox")
