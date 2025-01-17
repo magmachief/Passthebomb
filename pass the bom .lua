@@ -94,28 +94,97 @@ local WhitelistSystem = {
         return decryptedKey == providedKey, "Key verification " .. (decryptedKey == providedKey and "successful" or "failed")
     end
 }
+-- Function to create the key input GUI
+local function createKeyInputGui()
+    local player = Players.LocalPlayer
+    local playerGui = player:WaitForChild("PlayerGui")
+    
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "KeyInputGui"
+    screenGui.Parent = playerGui
+    
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 300, 0, 200)
+    frame.Position = UDim2.new(0.5, -150, 0.5, -100)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    frame.BorderSizePixel = 2
+    frame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    frame.Parent = screenGui
+    
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.1, 0)
+    corner.Parent = frame
+    
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0.2, 0)
+    titleLabel.Text = "Enter Access Key"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextSize = 24
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Parent = frame
+    
+    local keyInput = Instance.new("TextBox")
+    keyInput.Size = UDim2.new(0.8, 0, 0.2, 0)
+    keyInput.Position = UDim2.new(0.1, 0, 0.4, 0)
+    keyInput.PlaceholderText = "Enter your key here"
+    keyInput.Text = ""
+    keyInput.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    keyInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+    keyInput.TextSize = 18
+    keyInput.Font = Enum.Font.SourceSans
+    keyInput.Parent = frame
+    
+    local submitButton = Instance.new("TextButton")
+    submitButton.Size = UDim2.new(0.8, 0, 0.2, 0)
+    submitButton.Position = UDim2.new(0.1, 0, 0.7, 0)
+    submitButton.Text = "Submit"
+    submitButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+    submitButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    submitButton.TextSize = 18
+    submitButton.Font = Enum.Font.SourceSans
+    submitButton.Parent = frame
+    local submitCorner = Instance.new("UICorner")
+    submitCorner.CornerRadius = UDim.new(0.1, 0)
+    submitCorner.Parent = submitButton
+    
+    return screenGui, keyInput, submitButton
+end
 -- Function to initialize whitelist and check authorization
 local function initializeWhitelist()
     local player = Players.LocalPlayer
     if not player then return false end
     
-    local success, tierOrError = WhitelistSystem:checkAuthorization(player.UserId)
-    if not success then
-        -- Handle unauthorized access
-        player:Kick("Unauthorized access: " .. tierOrError)
-        return false
+    local function verifyKeyInput(key)
+        local success, tierOrError = WhitelistSystem:checkAuthorization(player.UserId)
+        if not success then
+            -- Handle unauthorized access
+            player:Kick("Unauthorized access: " .. tierOrError)
+            return false
+        end
+        
+        -- Additional security check with key verification
+        local keyValid, message = WhitelistSystem:verifyKey(player.UserId, key)
+        if not keyValid then
+            player:Kick("Invalid key: " .. message)
+            return false
+        end
+        
+        -- Log successful authorization
+        print("User authorized successfully - Tier: " .. tierOrError)
+        return true
     end
     
-    -- Additional security check with key verification
-    local key = "user_specific_key_1" -- This should be obtained securely
-    local keyValid, message = WhitelistSystem:verifyKey(player.UserId, key)
-    if not keyValid then
-        player:Kick("Invalid key: " .. message)
-        return false
-    end
+    -- Create and display the key input GUI
+    local screenGui, keyInput, submitButton = createKeyInputGui()
     
-    -- Log successful authorization
-    print("User authorized successfully - Tier: " .. tierOrError)
+    submitButton.MouseButton1Click:Connect(function()
+        local key = keyInput.Text
+        if verifyKeyInput(key) then
+            screenGui:Destroy()
+        end
+    end)
+    
     return true
 end
 
@@ -123,18 +192,7 @@ end
 if not initializeWhitelist() then
     return -- Exit if not whitelisted
 end
--- Admin functions to manage the whitelist
-local function addWhitelistedUser(userId, key, expiryDate, tier)
-    return WhitelistSystem:addUser(userId, key, expiryDate, tier)
-end
-
-local function removeWhitelistedUser(userId)
-    return WhitelistSystem:removeUser(userId)
-end
-
--- Example usage (run this securely):
--- addWhitelistedUser(123456789, "user_specific_key_1", "2025-02-17", "premium")
--- removeWhitelistedUser(123456789)
+-- Your original script starts here
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
@@ -353,7 +411,7 @@ autoPassBombButton.MouseButton1Click:Connect(function()
                         local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                         local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
                         if humanoid then
-                            local path = PathfindingService:CreatePath({
+  local path = PathfindingService:CreatePath({
                                 AgentRadius = 2,
                                 AgentHeight = 5,
                                 AgentCanJump = true,
