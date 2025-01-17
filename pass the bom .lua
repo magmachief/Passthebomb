@@ -1,18 +1,18 @@
-local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
+local DataStoreService = game:GetService("DataStoreService")
 
-local KEY = "Volleyball2007" -- The encryption key used for XOR encryption
+local ENCRYPTION_KEY = "Volleyball2007" -- The encryption key used for XOR encryption
+local DATASTORE_NAME = "WhitelistDataStore"
+local datastore = DataStoreService:GetDataStore(DATASTORE_NAME)
 
 -- Whitelist Data Structure
 local WhitelistSystem = {
     authorized = {
         [7551573578] = {
             key = "Znpo~nZnn~ppo", -- Encrypted key for "Volleyball2007"
-            expiry = "2030-02-17", -- YYYY-MM-DD format
-            tier = "premium"
+            expiry = "2030-01-17", -- Expiry date (YYYY-MM-DD format)
         },
     },
-    
     state = {}, -- Tracks authenticated users
 
     -- XOR Encryption
@@ -20,7 +20,7 @@ local WhitelistSystem = {
         local encrypted = ""
         for i = 1, #data do
             local byte = string.byte(data, i)
-            local keyByte = string.byte(KEY, ((i - 1) % #KEY) + 1)
+            local keyByte = string.byte(ENCRYPTION_KEY, ((i - 1) % #ENCRYPTION_KEY) + 1)
             encrypted = encrypted .. string.char(bit32.bxor(byte, keyByte))
         end
         return encrypted
@@ -48,7 +48,7 @@ local WhitelistSystem = {
         if not self:validateTimestamp(userData.expiry) then
             return false, "Whitelist expired"
         end
-        return true, userData.tier
+        return true, "User is authorized"
     end,
 
     verifyKey = function(self, userId, providedKey)
@@ -57,10 +57,30 @@ local WhitelistSystem = {
             return false, "User not found"
         end
         local decryptedKey = self:decrypt(userData.key)
-        print("Expected Decrypted Key: " .. decryptedKey)
-        print("Provided Key: " .. providedKey)
         return decryptedKey == providedKey, "Key verification " .. (decryptedKey == providedKey and "successful" or "failed")
     end,
+
+    saveAuthorizedUser = function(self, userId)
+        self.state[userId] = true
+        local success, errorMessage = pcall(function()
+            datastore:SetAsync(tostring(userId), true)
+        end)
+        if not success then
+            warn("Failed to save authorized user: " .. errorMessage)
+        end
+    end,
+
+    loadAuthorizedUser = function(self, userId)
+        local success, result = pcall(function()
+            return datastore:GetAsync(tostring(userId))
+        end)
+        if success and result then
+            self.state[userId] = true
+            return true
+        else
+            return false
+        end
+    end
 }
 
 -- Function to create the user input GUI
@@ -171,7 +191,7 @@ local function initializeWhitelist()
     local player = Players.LocalPlayer
     local userId = player.UserId
 
-    if WhitelistSystem.state[userId] then
+    if WhitelistSystem.state[userId] or WhitelistSystem:loadAuthorizedUser(userId) then
         runMainScript()
         return
     end
@@ -179,10 +199,9 @@ local function initializeWhitelist()
     local screenGui, userIdInput, keyInput, submitButton, statusLabel = createUserInputGui()
 
     submitButton.MouseButton1Click:Connect(function()
-        local inputUserId = userIdInput.Text
+        local inputUserId = tonumber(userIdInput.Text)
         local inputKey = keyInput.Text
 
-        inputUserId = tonumber(inputUserId)
         if not inputUserId then
             statusLabel.Text = "Invalid User ID"
             print("Invalid User ID: " .. tostring(inputUserId))
@@ -197,9 +216,6 @@ local function initializeWhitelist()
         end
 
         local decryptedKey = WhitelistSystem:decrypt(userData.key)
-        print("Decrypted Key: " .. decryptedKey)
-        print("Expected Decrypted Key: " .. decryptedKey)
-        print("Provided Key: " .. inputKey)
         if inputKey ~= decryptedKey then
             statusLabel.Text = "Invalid Key"
             print("Key mismatch: Entered - " .. inputKey .. ", Expected - " .. decryptedKey)
@@ -208,7 +224,7 @@ local function initializeWhitelist()
 
         statusLabel.Text = "Authorization successful!"
         statusLabel.TextColor3 = Color3.fromRGB(0, 255, 0) -- Green
-        WhitelistSystem.state[inputUserId] = true
+        WhitelistSystem:saveAuthorizedUser(inputUserId)
         print("User authorized successfully: " .. tostring(inputUserId))
         task.wait(1)
         screenGui:Destroy()
