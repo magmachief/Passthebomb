@@ -226,4 +226,8 @@ local function createYonkaiMenu()
     print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
 end
 
+-- Reinitialize the GUI when the player's character is added
+LocalPlayer.CharacterAdded:Connect(createYonkaiMenu)
+
+-- Initial call to create the GUI
 createYonkaiMenu()
