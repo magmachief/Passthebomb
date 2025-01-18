@@ -1,4 +1,4 @@
--- Roblox "Pass The Bomb" Script with All Features and Scrollable Yonkai Menu
+-- Roblox "Pass The Bomb" Script with ESP Removed and All Other Features
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -9,13 +9,11 @@ local LocalPlayer = Players.LocalPlayer
 local bombPassDistance = 10
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
-local ESPEnabled = false
 local EnemyHitboxEnabled = false
 local AntiHitboxEnabled = false
 local RemoveHitboxEnabled = false
-
-local ESPTransparency = 0.5
-local ESPColor = Color3.fromRGB(255, 0, 0)
+local BombHitboxSize = Vector3.new(5, 5, 5)
+local OriginalBombHitboxSize = Vector3.new(2, 2, 2)
 local EnemyHitboxSize = Vector3.new(10, 10, 10)
 local AntiHitboxSize = Vector3.new(0.1, 0.1, 0.1)
 
@@ -57,9 +55,9 @@ local function passBomb()
 end
 
 local function applyAntiSlippery()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     if AntiSlipperyEnabled then
         spawn(function()
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
             while AntiSlipperyEnabled do
                 for _, part in pairs(character:GetDescendants()) do
                     if part:IsA("BasePart") then
@@ -70,7 +68,6 @@ local function applyAntiSlippery()
             end
         end)
     else
-        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
         for _, part in pairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
@@ -79,7 +76,7 @@ local function applyAntiSlippery()
     end
 end
 
-local function removeHitbox()
+local function handleRemoveHitbox()
     if RemoveHitboxEnabled then
         local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
         for i = 1, 100 do
@@ -94,35 +91,6 @@ local function removeHitbox()
     end
 end
 
-local function createESP(player)
-    if player == LocalPlayer then return end
-    local character = player.Character or player.CharacterAdded:Wait()
-    local collisionPart = character:FindFirstChild("CollisionPart")
-    if collisionPart then
-        local espBox = Instance.new("BoxHandleAdornment")
-        espBox.Name = "ESPBox"
-        espBox.Adornee = collisionPart
-        espBox.Size = collisionPart.Size
-        espBox.Transparency = ESPTransparency
-        espBox.Color3 = ESPColor
-        espBox.AlwaysOnTop = true
-        espBox.ZIndex = 1
-        espBox.Parent = collisionPart
-    end
-end
-
-local function removeESP(player)
-    if player.Character then
-        local collisionPart = player.Character:FindFirstChild("CollisionPart")
-        if collisionPart then
-            local espBox = collisionPart:FindFirstChild("ESPBox")
-            if espBox then
-                espBox:Destroy()
-            end
-        end
-    end
-end
-
 local function expandEnemyHitboxes()
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character then
@@ -131,6 +99,10 @@ local function expandEnemyHitboxes()
                 collisionPart.Size = EnemyHitboxSize
                 collisionPart.Transparency = 0.5
                 collisionPart.CanCollide = false
+            elseif collisionPart then
+                collisionPart.Size = Vector3.new(2, 2, 2)
+                collisionPart.Transparency = 0
+                collisionPart.CanCollide = true
             end
         end
     end
@@ -139,12 +111,12 @@ end
 local function applyAntiHitbox()
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local collisionPart = character:FindFirstChild("CollisionPart")
-    if collisionPart and AntiHitboxEnabled then
-        collisionPart.Size = AntiHitboxSize
-        collisionPart.Transparency = 1
-        collisionPart.CanCollide = false
-    else
-        if collisionPart then
+    if collisionPart then
+        if AntiHitboxEnabled then
+            collisionPart.Size = AntiHitboxSize
+            collisionPart.Transparency = 1
+            collisionPart.CanCollide = false
+        else
             collisionPart.Size = Vector3.new(2, 2, 2)
             collisionPart.Transparency = 0
             collisionPart.CanCollide = true
@@ -152,8 +124,25 @@ local function applyAntiHitbox()
     end
 end
 
--- Enhanced Scrollable Yonkai Menu
-local function createScrollableYonkaiMenu()
+local function handleBombHitbox()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    character.ChildAdded:Connect(function(child)
+        if child.Name == "Bomb" then
+            child.Size = BombHitboxSize
+            child.Transparency = 0.5 -- Optional: Visual feedback
+        end
+    end)
+
+    character.ChildRemoved:Connect(function(child)
+        if child.Name == "Bomb" then
+            child.Size = OriginalBombHitboxSize
+            child.Transparency = 0
+        end
+    end)
+end
+
+-- Scrollable Yonkai Menu
+local function createYonkaiMenu()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "YonkaiMenu"
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
@@ -172,7 +161,7 @@ local function createScrollableYonkaiMenu()
 
     local scrollingFrame = Instance.new("ScrollingFrame")
     scrollingFrame.Size = UDim2.new(1, 0, 1, 0)
-    scrollingFrame.CanvasSize = UDim2.new(0, 0, 2, 0) -- Allows scrolling
+    scrollingFrame.CanvasSize = UDim2.new(0, 0, 1.5, 0)
     scrollingFrame.ScrollBarThickness = 8
     scrollingFrame.ScrollBarImageColor3 = Color3.fromRGB(255, 255, 255)
     scrollingFrame.BackgroundTransparency = 1
@@ -215,18 +204,6 @@ local function createScrollableYonkaiMenu()
         applyAntiSlippery()
     end)
 
-    createToggleButton("ESP: OFF", function(button)
-        ESPEnabled = not ESPEnabled
-        button.Text = "ESP: " .. (ESPEnabled and "ON" or "OFF")
-        for _, player in pairs(Players:GetPlayers()) do
-            if ESPEnabled then
-                createESP(player)
-            else
-                removeESP(player)
-            end
-        end
-    end)
-
     createToggleButton("Enemy Hitbox: OFF", function(button)
         EnemyHitboxEnabled = not EnemyHitboxEnabled
         button.Text = "Enemy Hitbox: " .. (EnemyHitboxEnabled and "ON" or "OFF")
@@ -242,14 +219,14 @@ local function createScrollableYonkaiMenu()
     createToggleButton("Remove Hitbox: OFF", function(button)
         RemoveHitboxEnabled = not RemoveHitboxEnabled
         button.Text = "Remove Hitbox: " .. (RemoveHitboxEnabled and "ON" or "OFF")
-        removeHitbox()
+        handleRemoveHitbox()
     end)
 
     -- Toggle menu button
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Size = UDim2.new(0, 50, 0, 50)
     toggleButton.Position = UDim2.new(0, 20, 0, 20)
-    toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon asset
+    toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon
     toggleButton.BackgroundTransparency = 1
     toggleButton.Parent = screenGui
 
@@ -260,20 +237,13 @@ local function createScrollableYonkaiMenu()
     print("Scrollable Yonkai Menu loaded successfully.")
 end
 
--- Initialize the Menu
-createScrollableYonkaiMenu()
+-- Initialize Features
+handleBombHitbox()
+createYonkaiMenu()
 
 -- Monitor Player Updates
-Players.PlayerAdded:Connect(function(player)
-    if ESPEnabled then
-        player.CharacterAdded:Connect(function()
-            createESP(player)
-        end)
-    end
-end)
-
 Players.PlayerRemoving:Connect(function(player)
-    removeESP(player)
+    expandEnemyHitboxes() -- Reset enemy hitboxes on player removal
 end)
 
 LocalPlayer.CharacterAdded:Connect(function()
