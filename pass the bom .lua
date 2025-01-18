@@ -13,16 +13,59 @@ mainFrame.Size = UDim2.new(0, 300, 0, 400)
 mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
 mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 mainFrame.BorderSizePixel = 0
+mainFrame.BackgroundTransparency = 0.2
+mainFrame.ClipsDescendants = true
 mainFrame.Parent = screenGui
+
+-- Adding a rounded corner effect
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 15)
+UICorner.Parent = mainFrame
+
+-- Adding a UI stroke for a better outline
+local UIStroke = Instance.new("UIStroke")
+UIStroke.Thickness = 2
+UIStroke.Color = Color3.fromRGB(255, 255, 255)
+UIStroke.Parent = mainFrame
 
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.2, 0)
 title.Text = "Yonkai Menu"
-title.TextColor3 = Color3.new(1, 1, 1)
+title.TextColor3 = Color3.new(0.8, 0.8, 0.8)
 title.BackgroundTransparency = 1
 title.Font = Enum.Font.FredokaOne
 title.TextScaled = true
 title.Parent = mainFrame
+
+-- Adding a gradient effect to the title
+local titleGradient = Instance.new("UIGradient")
+titleGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 255))})
+titleGradient.Parent = title
+
+-- Toggle button to show/hide the main menu
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 10, 0, 10)
+toggleButton.Text = "Menu"
+toggleButton.TextScaled = true
+toggleButton.Font = Enum.Font.GothamBold
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+toggleButton.TextColor3 = Color3.new(1, 1, 1)
+toggleButton.Parent = screenGui
+
+-- Adding UI elements to enhance the button appearance
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0, 10)
+buttonCorner.Parent = toggleButton
+
+local buttonStroke = Instance.new("UIStroke")
+buttonStroke.Thickness = 2
+buttonStroke.Color = Color3.fromRGB(255, 255, 255)
+buttonStroke.Parent = toggleButton
+
+toggleButton.MouseButton1Click:Connect(function()
+    mainFrame.Visible = not mainFrame.Visible
+end)
 
 --// Settings
 local Settings = {
@@ -117,6 +160,16 @@ local function createButton(text, position, featureName, toggleFunction)
     button.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
     button.TextColor3 = Color3.new(1, 1, 1)
     button.Parent = mainFrame
+
+    -- Adding UI elements to enhance the button appearance
+    local buttonCorner = Instance.new("UICorner")
+    buttonCorner.CornerRadius = UDim.new(0, 10)
+    buttonCorner.Parent = button
+
+    local buttonStroke = Instance.new("UIStroke")
+    buttonStroke.Thickness = 2
+    buttonStroke.Color = Color3.fromRGB(255, 255, 255)
+    buttonStroke.Parent = button
 
     button.MouseButton1Click:Connect(function()
         Settings[featureName] = not Settings[featureName]
