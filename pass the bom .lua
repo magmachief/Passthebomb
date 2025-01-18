@@ -1,4 +1,4 @@
--- Roblox "Pass The Bomb" Script with ESP Removed and All Other Features
+-- Roblox "Pass The Bomb" Script with Fully Functional Features and Scrollable Yonkai Menu
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
