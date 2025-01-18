@@ -1,9 +1,8 @@
--- Roblox "Pass The Bomb" Script with Enhanced Features and Yonkai Menu
+-- Roblox "Pass The Bomb" Script with All Features Restored and Enhanced Yonkai Menu
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Configuration Variables
@@ -55,6 +54,44 @@ local function passBomb()
                 end
             end
         end
+    end
+end
+
+local function applyAntiSlippery()
+    if AntiSlipperyEnabled then
+        spawn(function()
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            while AntiSlipperyEnabled do
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                    end
+                end
+                wait(0.1)
+            end
+        end)
+    else
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
+            end
+        end
+    end
+end
+
+local function removeHitbox()
+    if RemoveHitboxEnabled then
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        for i = 1, 100 do
+            wait()
+            pcall(function()
+                character:WaitForChild("CollisionPart"):Destroy()
+            end)
+        end
+        LocalPlayer.CharacterAdded:Connect(function(char)
+            char:WaitForChild("CollisionPart"):Destroy()
+        end)
     end
 end
 
@@ -144,7 +181,7 @@ local function createYonkaiMenu()
     titleLabel.Font = Enum.Font.GothamBold
     titleLabel.Parent = mainFrame
 
-    -- Create a button template
+    -- Add Toggle Buttons
     local function createToggleButton(name, position, defaultText, toggleFunction)
         local button = Instance.new("TextButton")
         button.Size = UDim2.new(0.8, 0, 0.1, 0)
@@ -164,23 +201,26 @@ local function createYonkaiMenu()
         return button
     end
 
-    -- Add toggle buttons
-    createToggleButton("AutoPass", UDim2.new(0.1, 0, 0.2, 0), "Auto Pass: OFF", function()
+    createToggleButton("AutoPass", UDim2.new(0.1, 0, 0.15, 0), "Auto Pass: OFF", function()
         AutoPassEnabled = not AutoPassEnabled
-        passBomb()
     end)
 
-    createToggleButton("EnemyHitbox", UDim2.new(0.1, 0, 0.35, 0), "Enemy Hitbox: OFF", function()
+    createToggleButton("AntiSlippery", UDim2.new(0.1, 0, 0.3, 0), "Anti-Slippery: OFF", function()
+        AntiSlipperyEnabled = not AntiSlipperyEnabled
+        applyAntiSlippery()
+    end)
+
+    createToggleButton("EnemyHitbox", UDim2.new(0.1, 0, 0.45, 0), "Enemy Hitbox: OFF", function()
         EnemyHitboxEnabled = not EnemyHitboxEnabled
         expandEnemyHitboxes()
     end)
 
-    createToggleButton("AntiHitbox", UDim2.new(0.1, 0, 0.5, 0), "Anti Hitbox: OFF", function()
+    createToggleButton("AntiHitbox", UDim2.new(0.1, 0, 0.6, 0), "Anti Hitbox: OFF", function()
         AntiHitboxEnabled = not AntiHitboxEnabled
         applyAntiHitbox()
     end)
 
-    createToggleButton("ESP", UDim2.new(0.1, 0, 0.65, 0), "ESP: OFF", function()
+    createToggleButton("ESP", UDim2.new(0.1, 0, 0.75, 0), "ESP: OFF", function()
         ESPEnabled = not ESPEnabled
         for _, player in pairs(Players:GetPlayers()) do
             if ESPEnabled then
@@ -199,30 +239,17 @@ local function createYonkaiMenu()
     toggleButton.BackgroundTransparency = 1
     toggleButton.Parent = screenGui
 
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
     toggleButton.MouseButton1Click:Connect(function()
-        if mainFrame.Visible then
-            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -200, 0.5, -700)})
-            tween:Play()
-            tween.Completed:Connect(function()
-                mainFrame.Visible = false
-            end)
-        else
-            mainFrame.Position = UDim2.new(0.5, -200, 0.5, -700)
-            mainFrame.Visible = true
-            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -200, 0.5, -300)})
-            tween:Play()
-        end
+        mainFrame.Visible = not mainFrame.Visible
     end)
 
     print("Enhanced Yonkai Menu with all features loaded.")
 end
 
--- Initialize the Yonkai Menu
+-- Initialize the Menu
 createYonkaiMenu()
 
--- Dynamic Updates for Players
+-- Monitor Player Updates
 Players.PlayerAdded:Connect(function(player)
     if ESPEnabled then
         player.CharacterAdded:Connect(function()
@@ -235,4 +262,7 @@ Players.PlayerRemoving:Connect(function(player)
     removeESP(player)
 end)
 
-LocalPlayer.CharacterAdded:Connect(applyAntiHitbox)
+LocalPlayer.CharacterAdded:Connect(function()
+    applyAntiSlippery()
+    applyAntiHitbox()
+end)
