@@ -82,7 +82,7 @@ local function createYonkaiMenu()
         buttonShadow.AnchorPoint = Vector2.new(0.5, 0.5)
         buttonShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
         buttonShadow.Size = UDim2.new(1, 10, 1, 10)
-        buttonShadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
+        buttonShadow.Image = "rbxassetid://109704079435829" -- Shadow image asset ID
         buttonShadow.ImageColor3 = Color3.new(0, 0, 0)
         buttonShadow.ImageTransparency = 0.5
         buttonShadow.BackgroundTransparency = 1
