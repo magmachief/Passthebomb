@@ -114,7 +114,7 @@ local function createYonkaiMenu()
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Size = UDim2.new(0, 50, 0, 50)
     toggleButton.Position = UDim2.new(0, 20, 0, 20)
-    toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon asset ID
+    toggleButton.Image = "rbxassetid://6031075938"
     toggleButton.BackgroundTransparency = 1
     toggleButton.Parent = screenGui
 
@@ -148,7 +148,7 @@ local function createYonkaiMenu()
                             part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
                         end
                     end
-                    wait(0.1)
+                    wait(0.5)
                 end
             end)
         else
@@ -169,7 +169,7 @@ local function createYonkaiMenu()
             local LocalPlayer = Players.LocalPlayer
             local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
             local function removeCollisionPart(character)
-                for destructionIteration = 1, 100 do
+                for destructionIteration = 1, 10 do
                     wait()
                     pcall(function()
                         character:WaitForChild("CollisionPart"):Destroy()
@@ -183,11 +183,12 @@ local function createYonkaiMenu()
         end
     end)
 
+    local autoPassConnection
     autoPassBombButton.MouseButton1Click:Connect(function()
         AutoPassEnabled = not AutoPassEnabled
         autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
-        if AutoPassEnabled then
-            RunService.Stepped:Connect(function()
+        if AutoPassEnabled and not autoPassConnection then
+            autoPassConnection = RunService.Stepped:Connect(function()
                 if not AutoPassEnabled then return end
                 pcall(function()
                     if LocalPlayer.Backpack:FindFirstChild("Bomb") then
@@ -220,14 +221,14 @@ local function createYonkaiMenu()
                     end
                 end)
             end)
+        elseif not AutoPassEnabled and autoPassConnection then
+            autoPassConnection:Disconnect()
+            autoPassConnection = nil
         end
     end)
 
     print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
 end
 
--- Reinitialize the GUI when the player's character is added
 LocalPlayer.CharacterAdded:Connect(createYonkaiMenu)
-
--- Initial call to create the GUI
 createYonkaiMenu()
