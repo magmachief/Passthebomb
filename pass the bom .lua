@@ -31,6 +31,29 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
+-- Function to move towards the closest player
+local function moveToClosestPlayer()
+    local closestPlayer = getClosestPlayer()
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            local path = PathfindingService:CreatePath({
+                AgentRadius = 2,
+                AgentHeight = 5,
+                AgentCanJump = true,
+                AgentJumpHeight = 10,
+                AgentMaxSlope = 45,
+            })
+            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+            for _, waypoint in ipairs(path:GetWaypoints()) do
+                humanoid:MoveTo(waypoint.Position)
+                humanoid.MoveToFinished:Wait()
+            end
+        end
+    end
+end
+
 -- Function to pass the bomb to the closest player
 local function passBomb()
     if bombHolder == LocalPlayer and passToClosest then
@@ -50,7 +73,8 @@ local function passBomb()
                     end)
                 end
             else
-                print("No players within bomb pass distance.")
+                print("No players within bomb pass distance. Moving to closest player.")
+                moveToClosestPlayer()
             end
         else
             print("No valid closest player found.")
@@ -232,11 +256,12 @@ local function createYonkaiMenu()
     end)
 
     -- Auto Pass Bomb button functionality
+    local autoPassConnection
     autoPassBombButton.MouseButton1Click:Connect(function()
         AutoPassEnabled = not AutoPassEnabled
         autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
         if AutoPassEnabled then
-            RunService.Stepped:Connect(function()
+            autoPassConnection = RunService.Stepped:Connect(function()
                 if not AutoPassEnabled then return end
                 pcall(function()
                     if LocalPlayer.Backpack:FindFirstChild("Bomb") then
@@ -269,6 +294,10 @@ local function createYonkaiMenu()
                     end
                 end)
             end)
+        else
+            if autoPassConnection then
+                autoPassConnection:Disconnect()
+            end
         end
     end)
 
