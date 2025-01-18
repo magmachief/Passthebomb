@@ -60,6 +60,7 @@ end
 
 -- Function to create the Yonkai menu
 local function createYonkaiMenu()
+    -- Create a new ScreenGui and set ResetOnSpawn to false
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "YonkaiMenu"
     screenGui.ResetOnSpawn = false
@@ -276,3 +277,6 @@ end
 
 -- Ensure the menu is created and toggle button stays visible
 createYonkaiMenu()
+
+-- Recreate the menu if the player respawns
+LocalPlayer.CharacterAdded:Connect(createYonkaiMenu)
