@@ -12,7 +12,49 @@ local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 
--- Function to create Yonkai Menu
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and not player.Character:FindFirstChild("Bomb") then
+            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+
+    return closestPlayer
+end
+
+local function passBomb()
+    if bombHolder == LocalPlayer and passToClosest then
+        local closestPlayer = getClosestPlayer()
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance <= bombPassDistance then
+                local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
+                if bomb then
+                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
+                    tween:Play()
+                    tween.Completed:Connect(function()
+                        bomb.Parent = closestPlayer.Character
+                        print("Bomb passed to:", closestPlayer.Name)
+                    end)
+                end
+            else
+                print("No players within bomb pass distance.")
+            end
+        else
+            print("No valid closest player found.")
+        end
+    end
+end
+
 local function createYonkaiMenu()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "YonkaiMenu"
@@ -22,27 +64,14 @@ local function createYonkaiMenu()
     mainFrame.Size = UDim2.new(0, 350, 0, 450)
     mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
     mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.BackgroundTransparency = 0.1
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
     mainFrame.Visible = false
     mainFrame.Parent = screenGui
 
-    -- Rounded corners
     local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 15)
+    corner.CornerRadius = UDim.new(0.1, 0)
     corner.Parent = mainFrame
-
-    -- Drop shadow effect
-    local shadow = Instance.new("ImageLabel")
-    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    shadow.Size = UDim2.new(1, 50, 1, 50)
-    shadow.Image = "rbxassetid://109704079435829" -- Shadow image asset ID
-    shadow.ImageColor3 = Color3.new(0, 0, 0)
-    shadow.ImageTransparency = 0.5
-    shadow.BackgroundTransparency = 1
-    shadow.ZIndex = 0
-    shadow.Parent = mainFrame
 
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
@@ -53,48 +82,35 @@ local function createYonkaiMenu()
     titleLabel.Font = Enum.Font.SourceSansBold
     titleLabel.Parent = mainFrame
 
-    -- Adding a gradient effect to the title
-    local titleGradient = Instance.new("UIGradient")
-    titleGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 255))
-    })
-    titleGradient.Parent = titleLabel
+    local antiSlipperyButton = Instance.new("TextButton")
+    antiSlipperyButton.Size = UDim2.new(0.8, 0, 0.15, 0)
+    antiSlipperyButton.Position = UDim2.new(0.1, 0, 0.2, 0)
+    antiSlipperyButton.Text = "Anti-Slippery: OFF"
+    antiSlipperyButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+    antiSlipperyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    antiSlipperyButton.TextSize = 20
+    antiSlipperyButton.Font = Enum.Font.SourceSans
+    antiSlipperyButton.Parent = mainFrame
 
-    local function createButton(text, position)
-        local button = Instance.new("TextButton")
-        button.Size = UDim2.new(0.8, 0, 0.15, 0)
-        button.Position = position
-        button.Text = text .. ": OFF"
-        button.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 20
-        button.Font = Enum.Font.SourceSans
-        button.Parent = mainFrame
+    local removeHitboxButton = Instance.new("TextButton")
+    removeHitboxButton.Size = UDim2.new(0.8, 0, 0.15, 0)
+    removeHitboxButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+    removeHitboxButton.Text = "Remove Hitbox: OFF"
+    removeHitboxButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+    removeHitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    removeHitboxButton.TextSize = 20
+    removeHitboxButton.Font = Enum.Font.SourceSans
+    removeHitboxButton.Parent = mainFrame
 
-        -- Rounded corners for the button
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 10)
-        buttonCorner.Parent = button
-
-        -- Button shadow effect
-        local buttonShadow = Instance.new("ImageLabel")
-        buttonShadow.AnchorPoint = Vector2.new(0.5, 0.5)
-        buttonShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-        buttonShadow.Size = UDim2.new(1, 10, 1, 10)
-        buttonShadow.Image = "rbxassetid://109704079435829" -- Shadow image asset ID
-        buttonShadow.ImageColor3 = Color3.new(0, 0, 0)
-        buttonShadow.ImageTransparency = 0.5
-        buttonShadow.BackgroundTransparency = 1
-        buttonShadow.ZIndex = 0
-        buttonShadow.Parent = button
-
-        return button
-    end
-
-    local antiSlipperyButton = createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0))
-    local removeHitboxButton = createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.4, 0))
-    local autoPassBombButton = createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.6, 0))
+    local autoPassBombButton = Instance.new("TextButton")
+    autoPassBombButton.Size = UDim2.new(0.8, 0, 0.15, 0)
+    autoPassBombButton.Position = UDim2.new(0.1, 0, 0.6, 0)
+    autoPassBombButton.Text = "Auto Pass Bomb: OFF"
+    autoPassBombButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+    autoPassBombButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoPassBombButton.TextSize = 20
+    autoPassBombButton.Font = Enum.Font.SourceSans
+    autoPassBombButton.Parent = mainFrame
 
     -- Toggle button to show/hide the main menu
     local toggleButton = Instance.new("ImageButton")
