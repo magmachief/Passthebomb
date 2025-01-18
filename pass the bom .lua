@@ -1,80 +1,16 @@
---// Services
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
+local bombHolder = nil
 
---// GUI Setup
-local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "YonkaiMenu"
-screenGui.Parent = game.CoreGui
+local bombPassDistance = 10
+local passToClosest = true
+local AutoPassEnabled = false
+local AntiSlipperyEnabled = false
+local RemoveHitboxEnabled = false
 
-local mainFrame = Instance.new("Frame")
-mainFrame.Size = UDim2.new(0, 300, 0, 400)
-mainFrame.Position = UDim2.new(0.5, -150, 0.5, -200)
-mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-mainFrame.BorderSizePixel = 0
-mainFrame.BackgroundTransparency = 0.2
-mainFrame.ClipsDescendants = true
-mainFrame.Parent = screenGui
-
--- Adding a rounded corner effect
-local UICorner = Instance.new("UICorner")
-UICorner.CornerRadius = UDim.new(0, 15)
-UICorner.Parent = mainFrame
-
--- Adding a UI stroke for a better outline
-local UIStroke = Instance.new("UIStroke")
-UIStroke.Thickness = 2
-UIStroke.Color = Color3.fromRGB(255, 255, 255)
-UIStroke.Parent = mainFrame
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0.2, 0)
-title.Text = "Yonkai Menu"
-title.TextColor3 = Color3.new(0.8, 0.8, 0.8)
-title.BackgroundTransparency = 1
-title.Font = Enum.Font.FredokaOne
-title.TextScaled = true
-title.Parent = mainFrame
-
--- Adding a gradient effect to the title
-local titleGradient = Instance.new("UIGradient")
-titleGradient.Color = ColorSequence.new({ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)), ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 255))})
-titleGradient.Parent = title
-
--- Toggle button to show/hide the main menu
-local toggleButton = Instance.new("TextButton")
-toggleButton.Size = UDim2.new(0, 50, 0, 50)
-toggleButton.Position = UDim2.new(0, 10, 0, 10)
-toggleButton.Text = "Menu"
-toggleButton.TextScaled = true
-toggleButton.Font = Enum.Font.GothamBold
-toggleButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
-toggleButton.TextColor3 = Color3.new(1, 1, 1)
-toggleButton.Parent = screenGui
-
--- Adding UI elements to enhance the button appearance
-local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 10)
-buttonCorner.Parent = toggleButton
-
-local buttonStroke = Instance.new("UIStroke")
-buttonStroke.Thickness = 2
-buttonStroke.Color = Color3.fromRGB(255, 255, 255)
-buttonStroke.Parent = toggleButton
-
-toggleButton.MouseButton1Click:Connect(function()
-    mainFrame.Visible = not mainFrame.Visible
-end)
-
---// Settings
-local Settings = {
-    AntiSlipperyEnabled = false,
-    RemoveHitboxEnabled = false,
-    AutoPassEnabled = false
-}
-
---// Utility Functions
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -93,94 +29,201 @@ local function getClosestPlayer()
 end
 
 local function passBomb()
-    if LocalPlayer.Character and Settings.AutoPassEnabled then
+    if bombHolder == LocalPlayer and passToClosest then
         local closestPlayer = getClosestPlayer()
         if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
-            if bomb then
-                local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
-                tween:Play()
-                tween.Completed:Connect(function()
-                    bomb.Parent = closestPlayer.Character
-                    print("Bomb passed to:", closestPlayer.Name)
-                end)
-            end
-        end
-    end
-end
-
-local function applyAntiSlippery(enabled)
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    if enabled then
-        spawn(function()
-            while Settings.AntiSlipperyEnabled do
-                for _, part in pairs(character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                    end
+            local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance <= bombPassDistance then
+                local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
+                if bomb then
+                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
+                    tween:Play()
+                    tween.Completed:Connect(function()
+                        bomb.Parent = closestPlayer.Character
+                        print("Bomb passed to:", closestPlayer.Name)
+                    end)
                 end
-                wait(0.5)
+            else
+                print("No players within bomb pass distance.")
             end
-        end)
-    else
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-            end
+        else
+            print("No valid closest player found.")
         end
     end
 end
 
-local function removeCollisionParts(enabled)
-    if enabled then
-        local function removeCollisionPart(character)
-            for i = 1, 10 do
-                wait()
-                pcall(function()
-                    character:WaitForChild("CollisionPart"):Destroy()
-                end)
-            end
+local function createYonkaiMenu()
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "YonkaiMenu"
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 350, 0, 450)
+    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    mainFrame.BorderSizePixel = 2
+    mainFrame.BorderColor3 = Color3.fromRGB(255, 255, 255)
+    mainFrame.Visible = false
+    mainFrame.Parent = screenGui
+
+    local corner = Instance.new("UICorner")
+    corner.CornerRadius = UDim.new(0.1, 0)
+    corner.Parent = mainFrame
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
+    titleLabel.Text = "Yonkai Menu"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextSize = 28
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Parent = mainFrame
+
+    local antiSlipperyButton = Instance.new("TextButton")
+    antiSlipperyButton.Size = UDim2.new(0.8, 0, 0.15, 0)
+    antiSlipperyButton.Position = UDim2.new(0.1, 0, 0.2, 0)
+    antiSlipperyButton.Text = "Anti-Slippery: OFF"
+    antiSlipperyButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+    antiSlipperyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    antiSlipperyButton.TextSize = 20
+    antiSlipperyButton.Font = Enum.Font.SourceSans
+    antiSlipperyButton.Parent = mainFrame
+
+    local removeHitboxButton = Instance.new("TextButton")
+    removeHitboxButton.Size = UDim2.new(0.8, 0, 0.15, 0)
+    removeHitboxButton.Position = UDim2.new(0.1, 0, 0.4, 0)
+    removeHitboxButton.Text = "Remove Hitbox: OFF"
+    removeHitboxButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+    removeHitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    removeHitboxButton.TextSize = 20
+    removeHitboxButton.Font = Enum.Font.SourceSans
+    removeHitboxButton.Parent = mainFrame
+
+    local autoPassBombButton = Instance.new("TextButton")
+    autoPassBombButton.Size = UDim2.new(0.8, 0, 0.15, 0)
+    autoPassBombButton.Position = UDim2.new(0.1, 0, 0.6, 0)
+    autoPassBombButton.Text = "Auto Pass Bomb: OFF"
+    autoPassBombButton.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+    autoPassBombButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoPassBombButton.TextSize = 20
+    autoPassBombButton.Font = Enum.Font.SourceSans
+    autoPassBombButton.Parent = mainFrame
+
+    local toggleButton = Instance.new("ImageButton")
+    toggleButton.Size = UDim2.new(0, 50, 0, 50)
+    toggleButton.Position = UDim2.new(0, 20, 0, 20)
+    toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon asset ID
+    toggleButton.BackgroundTransparency = 1
+    toggleButton.Parent = screenGui
+
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+    toggleButton.MouseButton1Click:Connect(function()
+        if mainFrame.Visible then
+            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -700)})
+            tween:Play()
+            tween.Completed:Connect(function()
+                mainFrame.Visible = false
+            end)
+        else
+            mainFrame.Position = UDim2.new(0.5, -175, 0.5, -700)
+            mainFrame.Visible = true
+            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -225)})
+            tween:Play()
         end
-
-        removeCollisionPart(LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait())
-        LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
-    end
-end
-
---// Toggle Buttons
-local function createButton(text, position, featureName, toggleFunction)
-    local button = Instance.new("TextButton")
-    button.Size = UDim2.new(0.8, 0, 0.1, 0)
-    button.Position = position
-    button.Text = text .. ": OFF"
-    button.TextScaled = true
-    button.Font = Enum.Font.GothamBold
-    button.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
-    button.TextColor3 = Color3.new(1, 1, 1)
-    button.Parent = mainFrame
-
-    -- Adding UI elements to enhance the button appearance
-    local buttonCorner = Instance.new("UICorner")
-    buttonCorner.CornerRadius = UDim.new(0, 10)
-    buttonCorner.Parent = button
-
-    local buttonStroke = Instance.new("UIStroke")
-    buttonStroke.Thickness = 2
-    buttonStroke.Color = Color3.fromRGB(255, 255, 255)
-    buttonStroke.Parent = button
-
-    button.MouseButton1Click:Connect(function()
-        Settings[featureName] = not Settings[featureName]
-        button.Text = text .. ": " .. (Settings[featureName] and "ON" or "OFF")
-        toggleFunction(Settings[featureName])
     end)
+
+    antiSlipperyButton.MouseButton1Click:Connect(function()
+        AntiSlipperyEnabled = not AntiSlipperyEnabled
+        antiSlipperyButton.Text = "Anti-Slippery: " .. (AntiSlipperyEnabled and "ON" or "OFF")
+        if AntiSlipperyEnabled then
+            spawn(function()
+                local player = Players.LocalPlayer
+                local character = player.Character or player.CharacterAdded:Wait()
+                while AntiSlipperyEnabled do
+                    for _, part in pairs(character:GetDescendants()) do
+                        if part:IsA("BasePart") then
+                            part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                        end
+                    end
+                    wait(0.1)
+                end
+            end)
+        else
+            local player = Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
+                end
+            end
+        end
+    end)
+
+    removeHitboxButton.MouseButton1Click:Connect(function()
+        RemoveHitboxEnabled = not RemoveHitboxEnabled
+        removeHitboxButton.Text = "Remove Hitbox: " .. (RemoveHitboxEnabled and "ON" or "OFF")
+        if RemoveHitboxEnabled then
+            local LocalPlayer = Players.LocalPlayer
+            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local function removeCollisionPart(character)
+                for destructionIteration = 1, 100 do
+                    wait()
+                    pcall(function()
+                        character:WaitForChild("CollisionPart"):Destroy()
+                    end)
+                end
+            end
+            removeCollisionPart(Character)
+            LocalPlayer.CharacterAdded:Connect(function(character)
+                removeCollisionPart(character)
+            end)
+        end
+    end)
+
+    autoPassBombButton.MouseButton1Click:Connect(function()
+        AutoPassEnabled = not AutoPassEnabled
+        autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
+        if AutoPassEnabled then
+            RunService.Stepped:Connect(function()
+                if not AutoPassEnabled then return end
+                pcall(function()
+                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
+                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
+                    end
+
+                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+                    if Bomb then
+                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
+                        local closestPlayer = getClosestPlayer()
+                        if closestPlayer and closestPlayer.Character then
+                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                            if humanoid then
+                                local path = PathfindingService:CreatePath({
+                                    AgentRadius = 2,
+                                    AgentHeight = 5,
+                                    AgentCanJump = true,
+                                    AgentJumpHeight = 10,
+                                    AgentMaxSlope = 45,
+                                })
+                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+                                for _, waypoint in ipairs(path:GetWaypoints()) do
+                                    humanoid:MoveTo(waypoint.Position)
+                                    humanoid.MoveToFinished:Wait()
+                                end
+                            end
+                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                        end
+                    end
+                end)
+            end)
+        end
+    end)
+
+    print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
 end
 
-createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.3, 0), "AntiSlipperyEnabled", applyAntiSlippery)
-createButton("Remove Collision Parts", UDim2.new(0.1, 0, 0.5, 0), "RemoveHitboxEnabled", removeCollisionParts)
-createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.7, 0), "AutoPassEnabled", passBomb)
-
---// Show GUI
-mainFrame.Visible = true
+createYonkaiMenu()
