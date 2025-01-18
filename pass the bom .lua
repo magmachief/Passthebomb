@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
 local bombHolder = nil
@@ -61,7 +62,8 @@ end
 local function createYonkaiMenu()
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "YonkaiMenu"
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = StarterGui
 
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(0, 350, 0, 450)
