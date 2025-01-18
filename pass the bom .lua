@@ -1,5 +1,3 @@
--- Roblox "Pass The Bomb" Script with All Features Restored and Enhanced Yonkai Menu
-
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
