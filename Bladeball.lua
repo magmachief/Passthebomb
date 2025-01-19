@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
+local UserInputService = game:GetService("UserInputService")
 
 local ballDetectionRadius = 10 -- Radius for the detection area
 local AutoBlockEnabled = true -- Initial state of the auto-block feature
@@ -33,13 +34,9 @@ end
 
 -- Function to trigger block ability
 local function triggerBlockAbility()
-    -- Implement your block ability logic here
-    -- Example: Fire a remote event to activate the block ability
-    local blockAbilityEvent = LocalPlayer.Character:FindFirstChild("BlockAbility") -- Replace with actual event name
-    if blockAbilityEvent and blockAbilityEvent:IsA("RemoteEvent") then
-        blockAbilityEvent:FireServer()
-        print("Block ability activated!")
-    end
+    -- Simulate pressing the block key (e.g., "E")
+    UserInputService.InputBegan:Fire({KeyCode = Enum.KeyCode.E})
+    print("Block ability activated!")
 end
 
 -- Function to detect the ball and trigger block ability
