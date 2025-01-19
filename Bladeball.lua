@@ -1,9 +1,10 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
@@ -11,9 +12,9 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 -- Variables
 local defaultRadius = 10
-local ballDetectionRadius = LocalPlayer:GetAttribute("DetectionRadius") or defaultRadius
-local AutoBlockEnabled = true
-local SoundEffectsEnabled = true
+local ballDetectionRadius = defaultRadius
+local AutoBlockEnabled = false
+local SpamClickEnabled = false
 local detectionCircle = nil
 local resizingTween = nil
 
@@ -54,24 +55,35 @@ local function resizeDetectionCircle(newRadius)
     end
 end
 
--- Function to reset settings
-local function resetSettings()
-    ballDetectionRadius = defaultRadius
-    AutoBlockEnabled = true
-    SoundEffectsEnabled = true
-    resizeDetectionCircle(defaultRadius)
+-- Advanced Auto-Block Function
+local function advancedAutoBlock()
+    while AutoBlockEnabled and task.wait() do
+        for _, ball in pairs(Workspace:WaitForChild("Balls", 30):GetChildren()) do
+            if ball:IsA("BasePart") and humanoidRootPart then
+                -- Face the ball and press the block key
+                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, ball.Position)
+                Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, ball.Position)
+                if character:FindFirstChild("Highlight") then
+                    humanoidRootPart.CFrame = CFrame.new(ball.Position)
+                    VirtualInputManager:SendKeyEvent(true, "F", false, game)
+                end
+            end
+        end
+    end
 end
 
--- Function to play sound
-local function playSound(parent, soundId)
-    local sound = Instance.new("Sound")
-    sound.SoundId = "rbxassetid://" .. soundId
-    sound.Volume = 0.5
-    sound.Parent = parent
-    sound:Play()
-    sound.Ended:Connect(function()
-        sound:Destroy()
-    end)
+-- Spam Click Detection Function
+local function detectSpam()
+    local ballsFolder = Workspace:WaitForChild("Balls", 30)
+    local oldBall = nil
+    while SpamClickEnabled do
+        task.wait()
+        local ball = ballsFolder:FindFirstChildOfClass("Part")
+        if ball and oldBall ~= ball then
+            VirtualInputManager:SendKeyEvent(true, "F", false, game)
+            oldBall = ball
+        end
+    end
 end
 
 -- Function to create a toggleable menu
@@ -81,7 +93,6 @@ local function createToggleMenu()
     screenGui.ResetOnSpawn = false
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-    -- Main Frame
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(0, 250, 0, 300)
     mainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
@@ -90,7 +101,6 @@ local function createToggleMenu()
     mainFrame.Visible = true
     mainFrame.Parent = screenGui
 
-    -- Corner Radius
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 15)
     corner.Parent = mainFrame
@@ -98,7 +108,6 @@ local function createToggleMenu()
     -- Title
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
-    titleLabel.Position = UDim2.new(0, 0, 0, 0)
     titleLabel.Text = "Auto Block Settings"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.BackgroundTransparency = 1
@@ -106,110 +115,47 @@ local function createToggleMenu()
     titleLabel.Font = Enum.Font.SourceSansBold
     titleLabel.Parent = mainFrame
 
-    -- Sound Toggle
-    local soundToggleButton = Instance.new("TextButton")
-    soundToggleButton.Size = UDim2.new(0.8, 0, 0.12, 0)
-    soundToggleButton.Position = UDim2.new(0.1, 0, 0.2, 0)
-    soundToggleButton.Text = "Sound: ON"
-    soundToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    soundToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    soundToggleButton.TextSize = 16
-    soundToggleButton.Font = Enum.Font.SourceSans
-    soundToggleButton.Parent = mainFrame
+    -- AutoBlock Toggle
+    local autoBlockButton = Instance.new("TextButton")
+    autoBlockButton.Size = UDim2.new(0.8, 0, 0.12, 0)
+    autoBlockButton.Position = UDim2.new(0.1, 0, 0.2, 0)
+    autoBlockButton.Text = "Auto Block: OFF"
+    autoBlockButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    autoBlockButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoBlockButton.Font = Enum.Font.SourceSans
+    autoBlockButton.TextSize = 16
+    autoBlockButton.Parent = mainFrame
 
-    soundToggleButton.MouseButton1Click:Connect(function()
-        SoundEffectsEnabled = not SoundEffectsEnabled
-        soundToggleButton.Text = SoundEffectsEnabled and "Sound: ON" or "Sound: OFF"
-        soundToggleButton.BackgroundColor3 = SoundEffectsEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-    end)
-
-    -- Radius Controls
-    local radiusLabel = Instance.new("TextLabel")
-    radiusLabel.Size = UDim2.new(0.8, 0, 0.12, 0)
-    radiusLabel.Position = UDim2.new(0.1, 0, 0.35, 0)
-    radiusLabel.Text = "Radius: " .. ballDetectionRadius
-    radiusLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    radiusLabel.BackgroundTransparency = 1
-    radiusLabel.TextSize = 16
-    radiusLabel.Font = Enum.Font.SourceSans
-    radiusLabel.Parent = mainFrame
-
-    -- "+" Button
-    local plusButton = Instance.new("TextButton")
-    plusButton.Size = UDim2.new(0.3, 0, 0.1, 0)
-    plusButton.Position = UDim2.new(0.6, 0, 0.5, 0)
-    plusButton.Text = "+"
-    plusButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    plusButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    plusButton.TextSize = 16
-    plusButton.Font = Enum.Font.SourceSans
-    plusButton.Parent = mainFrame
-
-    plusButton.MouseButton1Click:Connect(function()
-        if ballDetectionRadius < 30 then
-            ballDetectionRadius += 1
-            resizeDetectionCircle(ballDetectionRadius)
-            radiusLabel.Text = "Radius: " .. ballDetectionRadius
-        end
-    end)
-
-    -- "-" Button
-    local minusButton = Instance.new("TextButton")
-    minusButton.Size = UDim2.new(0.3, 0, 0.1, 0)
-    minusButton.Position = UDim2.new(0.1, 0, 0.5, 0)
-    minusButton.Text = "-"
-    minusButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    minusButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    minusButton.TextSize = 16
-    minusButton.Font = Enum.Font.SourceSans
-    minusButton.Parent = mainFrame
-
-    minusButton.MouseButton1Click:Connect(function()
-        if ballDetectionRadius > 5 then
-            ballDetectionRadius -= 1
-            resizeDetectionCircle(ballDetectionRadius)
-            radiusLabel.Text = "Radius: " .. ballDetectionRadius
-        end
-    end)
-
-    -- Auto Block Toggle
-    local autoBlockToggleButton = Instance.new("TextButton")
-    autoBlockToggleButton.Size = UDim2.new(0.8, 0, 0.12, 0)
-    autoBlockToggleButton.Position = UDim2.new(0.1, 0, 0.65, 0)
-    autoBlockToggleButton.Text = "Auto Block: ON"
-    autoBlockToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-    autoBlockToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    autoBlockToggleButton.TextSize = 16
-    autoBlockToggleButton.Font = Enum.Font.SourceSans
-    autoBlockToggleButton.Parent = mainFrame
-
-    autoBlockToggleButton.MouseButton1Click:Connect(function()
+    autoBlockButton.MouseButton1Click:Connect(function()
         AutoBlockEnabled = not AutoBlockEnabled
-        autoBlockToggleButton.Text = AutoBlockEnabled and "Auto Block: ON" or "Auto Block: OFF"
-        autoBlockToggleButton.BackgroundColor3 = AutoBlockEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        autoBlockButton.Text = AutoBlockEnabled and "Auto Block: ON" or "Auto Block: OFF"
+        autoBlockButton.BackgroundColor3 = AutoBlockEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        if AutoBlockEnabled then
+            task.spawn(advancedAutoBlock)
+        end
     end)
 
-    -- Reset Button
-    local resetButton = Instance.new("TextButton")
-    resetButton.Size = UDim2.new(0.8, 0, 0.12, 0)
-    resetButton.Position = UDim2.new(0.1, 0, 0.8, 0)
-    resetButton.Text = "Reset"
-    resetButton.BackgroundColor3 = Color3.fromRGB(255, 140, 0)
-    resetButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    resetButton.TextSize = 16
-    resetButton.Font = Enum.Font.SourceSans
-    resetButton.Parent = mainFrame
+    -- Spam Click Toggle
+    local spamClickButton = Instance.new("TextButton")
+    spamClickButton.Size = UDim2.new(0.8, 0, 0.12, 0)
+    spamClickButton.Position = UDim2.new(0.1, 0, 0.35, 0)
+    spamClickButton.Text = "Spam Click: OFF"
+    spamClickButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    spamClickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    spamClickButton.Font = Enum.Font.SourceSans
+    spamClickButton.TextSize = 16
+    spamClickButton.Parent = mainFrame
 
-    resetButton.MouseButton1Click:Connect(function()
-        resetSettings()
-        soundToggleButton.Text = "Sound: ON"
-        soundToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        autoBlockToggleButton.Text = "Auto Block: ON"
-        autoBlockToggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-        radiusLabel.Text = "Radius: " .. defaultRadius
+    spamClickButton.MouseButton1Click:Connect(function()
+        SpamClickEnabled = not SpamClickEnabled
+        spamClickButton.Text = SpamClickEnabled and "Spam Click: ON" or "Spam Click: OFF"
+        spamClickButton.BackgroundColor3 = SpamClickEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
+        if SpamClickEnabled then
+            task.spawn(detectSpam)
+        end
     end)
 end
 
--- Create menu and circle
+-- Initialize
 detectionCircle = createDetectionCircle()
 createToggleMenu()
