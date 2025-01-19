@@ -1,4 +1,4 @@
--- Services
+--// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -21,7 +21,6 @@ local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 local defaultRadius = 10
 local ballDetectionRadius = defaultRadius
 local AutoBlockEnabled = false
-local SpamClickEnabled = false
 local detectionCircle = nil
 local resizingTween = nil
 
@@ -68,28 +67,16 @@ local function advancedAutoBlock()
     while AutoBlockEnabled and task.wait() do
         for _, ball in pairs(workspace:WaitForChild("Balls", 30):GetChildren()) do
             if ball:IsA("BasePart") and humanoidRootPart then
-                -- Face the ball and press the block key
-                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, ball.Position)
-                workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, ball.Position)
-                if character:FindFirstChild("Highlight") then
-                    humanoidRootPart.CFrame = CFrame.new(ball.Position)
+                local distance = (humanoidRootPart.Position - ball.Position).Magnitude
+                if distance <= ballDetectionRadius then
+                    -- Face the ball
+                    humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, ball.Position)
+                    workspace.CurrentCamera.CFrame = CFrame.new(workspace.CurrentCamera.CFrame.Position, ball.Position)
+                    -- Perform block action
                     VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
+                    VirtualInputManager:SendKeyEvent(false, Enum.KeyCode.F, false, game)
                 end
             end
-        end
-    end
-end
-
--- Spam Click Detection Function
-local function detectSpam()
-    local ballsFolder = workspace:WaitForChild("Balls", 30)
-    local oldBall = nil
-    while SpamClickEnabled do
-        task.wait()
-        local ball = ballsFolder:FindFirstChildOfClass("Part")
-        if ball and oldBall ~= ball then
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-            oldBall = ball
         end
     end
 end
@@ -140,26 +127,6 @@ local function createToggleMenu()
         autoBlockButton.BackgroundColor3 = AutoBlockEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
         if AutoBlockEnabled then
             task.spawn(advancedAutoBlock)
-        end
-    end)
-
-    -- Spam Click Toggle
-    local spamClickButton = Instance.new("TextButton")
-    spamClickButton.Size = UDim2.new(0.8, 0, 0.12, 0)
-    spamClickButton.Position = UDim2.new(0.1, 0, 0.35, 0)
-    spamClickButton.Text = "Spam Click: OFF"
-    spamClickButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
-    spamClickButton.TextColor3 = Color3.fromRGB(255, 255, 255)
-    spamClickButton.Font = Enum.Font.SourceSans
-    spamClickButton.TextSize = 16
-    spamClickButton.Parent = mainFrame
-
-    spamClickButton.MouseButton1Click:Connect(function()
-        SpamClickEnabled = not SpamClickEnabled
-        spamClickButton.Text = SpamClickEnabled and "Spam Click: ON" or "Spam Click: OFF"
-        spamClickButton.BackgroundColor3 = SpamClickEnabled and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(255, 0, 0)
-        if SpamClickEnabled then
-            task.spawn(detectSpam)
         end
     end)
 
