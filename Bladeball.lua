@@ -98,6 +98,13 @@ local function animateButton(button)
     end)
 end
 
+-- Function to trigger block ability
+local function triggerBlockAbility()
+    -- Simulate pressing the block key (e.g., "E")
+    UserInputService.InputBegan:Fire({KeyCode = Enum.KeyCode.E})
+    print("Block ability activated!")
+end
+
 -- Function to create the toggleable menu with slider, buttons, and sound toggle
 local function createToggleMenu()
     local screenGui = Instance.new("ScreenGui")
@@ -228,6 +235,18 @@ local function createToggleMenu()
     toggleIcon.MouseButton1Click:Connect(function()
         mainFrame.Visible = not mainFrame.Visible
     end)
+end
+
+-- Function to detect and block the ball
+local function detectAndBlockBall()
+    if detectionCircle then
+        detectionCircle.Touched:Connect(function(hit)
+            if hit:IsA("BasePart") and hit.Name == "Ball" and AutoBlockEnabled then
+                print("Ball detected within the block area!")
+                triggerBlockAbility()
+            end
+        end)
+    end
 end
 
 -- Create the detection circle
