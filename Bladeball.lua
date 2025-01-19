@@ -223,7 +223,7 @@ local function createToggleMenu()
     local toggleIcon = Instance.new("ImageButton")
     toggleIcon.Size = UDim2.new(0, 50, 0, 50)
     toggleIcon.Position = UDim2.new(0, 20, 0, 20)
-    toggleIcon.Image = "rbxassetid://6031075938"
+    toggleIcon.Image = "rbxassetid://6031075938" -- Use an appropriate icon asset ID
     toggleIcon.BackgroundTransparency = 1
     toggleIcon.Parent = screenGui
 
