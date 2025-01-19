@@ -1,1 +1,7 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Passthebomb/main/pass%20the%20bom%20.lua"))()
+
+
+local url = "https://raw.githubusercontent.com/magmachief/Passthebomb/main/Bladeball.lua"
+local response = game:HttpGet(url)
+local scriptFunction = loadstring(response)
+scriptFunction()
