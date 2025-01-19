@@ -46,10 +46,26 @@ local function moveToClosestPlayer()
                 AgentMaxSlope = 45,
             })
             path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-            for _, waypoint in ipairs(path:GetWaypoints()) do
-                humanoid:MoveTo(waypoint.Position)
-                humanoid.MoveToFinished:Wait()
+            local waypoints = path:GetWaypoints()
+            local waypointIndex = 1
+
+            local function followPath()
+                if waypointIndex <= #waypoints then
+                    local waypoint = waypoints[waypointIndex]
+                    humanoid:MoveTo(waypoint.Position)
+                    humanoid.MoveToFinished:Connect(function(reached)
+                        if reached then
+                            waypointIndex = waypointIndex + 1
+                            followPath()
+                        else
+                            -- Path was blocked, recompute path
+                            moveToClosestPlayer()
+                        end
+                    end)
+                end
             end
+
+            followPath()
         end
     end
 end
@@ -284,10 +300,26 @@ local function createYonkaiMenu()
                                     AgentMaxSlope = 45,
                                 })
                                 path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                                for _, waypoint in ipairs(path:GetWaypoints()) do
-                                    humanoid:MoveTo(waypoint.Position)
-                                    humanoid.MoveToFinished:Wait()
+                                local waypoints = path:GetWaypoints()
+                                local waypointIndex = 1
+
+                                local function followPath()
+                                    if waypointIndex <= #waypoints then
+                                        local waypoint = waypoints[waypointIndex]
+                                        humanoid:MoveTo(waypoint.Position)
+                                        humanoid.MoveToFinished:Connect(function(reached)
+                                            if reached then
+                                                waypointIndex = waypointIndex + 1
+                                                followPath()
+                                            else
+                                                -- Path was blocked, recompute path
+                                                moveToClosestPlayer()
+                                            end
+                                        end)
+                                    end
                                 end
+
+                                followPath()
                             end
                             BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
                         end
