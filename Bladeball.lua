@@ -8,6 +8,13 @@ local VirtualInputManager = game:GetService("VirtualInputManager")
 
 local LocalPlayer = Players.LocalPlayer
 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+
+-- Ensure character and HumanoidRootPart are updated on respawn
+LocalPlayer.CharacterAdded:Connect(function(char)
+    character = char
+    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+end)
+
 local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
 -- Variables
@@ -175,8 +182,6 @@ local function createToggleMenu()
     plusButton.TextSize = 16
     plusButton.Font = Enum.Font.SourceSans
     plusButton.Parent = mainFrame
-    animateButton(plusButton)
-
     plusButton.MouseButton1Click:Connect(function()
         if ballDetectionRadius < 30 then
             resizeDetectionCircle(ballDetectionRadius + 1)
@@ -193,8 +198,6 @@ local function createToggleMenu()
     minusButton.TextSize = 16
     minusButton.Font = Enum.Font.SourceSans
     minusButton.Parent = mainFrame
-    animateButton(minusButton)
-
     minusButton.MouseButton1Click:Connect(function()
         if ballDetectionRadius > 5 then
             resizeDetectionCircle(ballDetectionRadius - 1)
@@ -212,8 +215,6 @@ local function createToggleMenu()
     resetButton.TextSize = 16
     resetButton.Font = Enum.Font.SourceSans
     resetButton.Parent = mainFrame
-    animateButton(resetButton)
-
     resetButton.MouseButton1Click:Connect(function()
         resizeDetectionCircle(defaultRadius)
         sliderText.Text = "Radius: " .. defaultRadius
