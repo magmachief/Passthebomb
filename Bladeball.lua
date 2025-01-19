@@ -65,7 +65,7 @@ local function advancedAutoBlock()
                 Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, ball.Position)
                 if character:FindFirstChild("Highlight") then
                     humanoidRootPart.CFrame = CFrame.new(ball.Position)
-                    VirtualInputManager:SendKeyEvent(true, "F", false, game)
+                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
                 end
             end
         end
@@ -80,7 +80,7 @@ local function detectSpam()
         task.wait()
         local ball = ballsFolder:FindFirstChildOfClass("Part")
         if ball and oldBall ~= ball then
-            VirtualInputManager:SendKeyEvent(true, "F", false, game)
+            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
             oldBall = ball
         end
     end
@@ -229,6 +229,21 @@ local function createToggleMenu()
 
     toggleIcon.MouseButton1Click:Connect(function()
         mainFrame.Visible = not mainFrame.Visible
+    end)
+end
+
+-- Function to animate buttons on hover and click
+local function animateButton(button)
+    button.MouseEnter:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), { Size = button.Size + UDim2.new(0, 5, 0, 5) }):Play()
+    end)
+    button.MouseLeave:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.2), { Size = button.Size - UDim2.new(0, 5, 0, 5) }):Play()
+    end)
+    button.MouseButton1Click:Connect(function()
+        TweenService:Create(button, TweenInfo.new(0.1), { Size = button.Size - UDim2.new(0, 3, 0, 3) }):Play()
+        task.wait(0.1)
+        TweenService:Create(button, TweenInfo.new(0.1), { Size = button.Size + UDim2.new(0, 3, 0, 3) }):Play()
     end)
 end
 
