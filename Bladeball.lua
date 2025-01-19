@@ -1,98 +1,3 @@
---// Services
-local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-
-local LocalPlayer = Players.LocalPlayer
-local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-
--- Ensure character and HumanoidRootPart are updated on respawn
-LocalPlayer.CharacterAdded:Connect(function(char)
-    character = char
-    humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-end)
-
-local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
-
--- Variables
-local defaultRadius = 10
-local ballDetectionRadius = defaultRadius
-local AutoBlockEnabled = false
-local SpamClickEnabled = false
-local detectionCircle = nil
-local resizingTween = nil
-
--- Function to create the detection circle
-local function createDetectionCircle()
-    local circle = Instance.new("Part")
-    circle.Name = "DetectionCircle"
-    circle.Size = Vector3.new(ballDetectionRadius * 2, 0.1, ballDetectionRadius * 2)
-    circle.Shape = Enum.PartType.Cylinder
-    circle.Anchored = true
-    circle.CanCollide = false
-    circle.Transparency = 1
-    circle.Parent = character
-
-    RunService.Stepped:Connect(function()
-        if character and humanoidRootPart then
-            circle.CFrame = humanoidRootPart.CFrame * CFrame.new(0, -3, 0)
-        end
-    end)
-
-    return circle
-end
-
--- Function to resize the detection circle
-local function resizeDetectionCircle(newRadius)
-    ballDetectionRadius = newRadius
-    if detectionCircle then
-        if resizingTween then
-            resizingTween:Cancel()
-        end
-        local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-        resizingTween = TweenService:Create(
-            detectionCircle,
-            tweenInfo,
-            { Size = Vector3.new(ballDetectionRadius * 2, 0.1, ballDetectionRadius * 2) }
-        )
-        resizingTween:Play()
-    end
-end
-
--- Advanced Auto-Block Function
-local function advancedAutoBlock()
-    while AutoBlockEnabled and task.wait() do
-        for _, ball in pairs(Workspace:WaitForChild("Balls", 30):GetChildren()) do
-            if ball:IsA("BasePart") and humanoidRootPart then
-                -- Face the ball and press the block key
-                humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, ball.Position)
-                Workspace.CurrentCamera.CFrame = CFrame.new(Workspace.CurrentCamera.CFrame.Position, ball.Position)
-                if character:FindFirstChild("Highlight") then
-                    humanoidRootPart.CFrame = CFrame.new(ball.Position)
-                    VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-                end
-            end
-        end
-    end
-end
-
--- Spam Click Detection Function
-local function detectSpam()
-    local ballsFolder = Workspace:WaitForChild("Balls", 30)
-    local oldBall = nil
-    while SpamClickEnabled do
-        task.wait()
-        local ball = ballsFolder:FindFirstChildOfClass("Part")
-        if ball and oldBall ~= ball then
-            VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.F, false, game)
-            oldBall = ball
-        end
-    end
-end
-
 -- Function to create a toggleable menu
 local function createToggleMenu()
     local screenGui = Instance.new("ScreenGui")
@@ -133,6 +38,9 @@ local function createToggleMenu()
     autoBlockButton.TextSize = 16
     autoBlockButton.Parent = mainFrame
 
+    -- Button animations for AutoBlock button
+    animateButton(autoBlockButton)
+
     autoBlockButton.MouseButton1Click:Connect(function()
         AutoBlockEnabled = not AutoBlockEnabled
         autoBlockButton.Text = AutoBlockEnabled and "Auto Block: ON" or "Auto Block: OFF"
@@ -152,6 +60,9 @@ local function createToggleMenu()
     spamClickButton.Font = Enum.Font.SourceSans
     spamClickButton.TextSize = 16
     spamClickButton.Parent = mainFrame
+
+    -- Button animations for SpamClick button
+    animateButton(spamClickButton)
 
     spamClickButton.MouseButton1Click:Connect(function()
         SpamClickEnabled = not SpamClickEnabled
@@ -182,6 +93,10 @@ local function createToggleMenu()
     plusButton.TextSize = 16
     plusButton.Font = Enum.Font.SourceSans
     plusButton.Parent = mainFrame
+
+    -- Button animations for Plus button
+    animateButton(plusButton)
+
     plusButton.MouseButton1Click:Connect(function()
         if ballDetectionRadius < 30 then
             resizeDetectionCircle(ballDetectionRadius + 1)
@@ -198,6 +113,10 @@ local function createToggleMenu()
     minusButton.TextSize = 16
     minusButton.Font = Enum.Font.SourceSans
     minusButton.Parent = mainFrame
+
+    -- Button animations for Minus button
+    animateButton(minusButton)
+
     minusButton.MouseButton1Click:Connect(function()
         if ballDetectionRadius > 5 then
             resizeDetectionCircle(ballDetectionRadius - 1)
@@ -215,6 +134,10 @@ local function createToggleMenu()
     resetButton.TextSize = 16
     resetButton.Font = Enum.Font.SourceSans
     resetButton.Parent = mainFrame
+
+    -- Button animations for Reset button
+    animateButton(resetButton)
+
     resetButton.MouseButton1Click:Connect(function()
         resizeDetectionCircle(defaultRadius)
         sliderText.Text = "Radius: " .. defaultRadius
@@ -231,6 +154,9 @@ local function createToggleMenu()
     toggleIcon.MouseButton1Click:Connect(function()
         mainFrame.Visible = not mainFrame.Visible
     end)
+
+    -- Animating toggle icon on hover
+    animateButton(toggleIcon)
 end
 
 -- Function to animate buttons on hover and click
@@ -248,8 +174,6 @@ local function animateButton(button)
     end)
 end
 
--- Initialize
-detectionCircle = createDetectionCircle()
+-- Initialize the menu
 createToggleMenu()
-
 print("Blade Ball Auto Block Script Loaded!")
