@@ -13,6 +13,20 @@ local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 
+-- Debounce utility function
+local function debounce(func, delay)
+    local isDebounced = false
+    return function(...)
+        if not isDebounced then
+            isDebounced = true
+            func(...)
+            task.delay(delay, function()
+                isDebounced = false
+            end)
+        end
+    end
+end
+
 -- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -149,17 +163,25 @@ local function createYonkaiMenu()
     })
     titleGradient.Parent = titleLabel
 
-    -- Function to create buttons
-    local function createButton(text, position)
+    -- Function to create buttons with debounce
+    local function createButton(name, position, callback)
         local button = Instance.new("TextButton")
-        button.Size = UDim2.new(0.8, 0, 0.15, 0)
+        button.Size = UDim2.new(0.8, 0, 0.1, 0)
         button.Position = position
-        button.Text = text .. ": OFF"
+        button.Text = name .. ": OFF"
         button.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
         button.TextSize = 20
         button.Font = Enum.Font.SourceSans
         button.Parent = mainFrame
+
+        -- Debounced click handler
+        local isEnabled = false
+        button.MouseButton1Click:Connect(debounce(function()
+            isEnabled = not isEnabled
+            button.Text = name .. ": " .. (isEnabled and "ON" or "OFF")
+            callback(isEnabled)
+        end, 0.5)) -- 0.5 seconds debounce delay
 
         -- Rounded corners for the button
         local buttonCorner = Instance.new("UICorner")
@@ -181,9 +203,19 @@ local function createYonkaiMenu()
         return button
     end
 
-    local antiSlipperyButton = createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0))
-    local removeHitboxButton = createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.4, 0))
-    local autoPassBombButton = createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.6, 0))
+    -- Adding the buttons for each feature
+    createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0), function(enabled)
+        AntiSlipperyEnabled = enabled
+        print("Anti-Slippery:", enabled and "Enabled" or "Disabled")
+    end)
+    createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.4, 0), function(enabled)
+        RemoveHitboxEnabled = enabled
+        print("Remove Hitbox:", enabled and "Enabled" or "Disabled")
+    end)
+    createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.6, 0), function(enabled)
+        AutoPassEnabled = enabled
+        print("Auto Pass Bomb:", enabled and "Enabled" or "Disabled")
+    end)
 
     -- Toggle button to show/hide the main menu
     local toggleButton = Instance.new("ImageButton")
@@ -218,118 +250,6 @@ local function createYonkaiMenu()
             mainFrame.Visible = true
             local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -225)})
             tween:Play()
-        end
-    end)
-
-    -- Anti-Slippery button functionality
-    antiSlipperyButton.MouseButton1Click:Connect(function()
-        AntiSlipperyEnabled = not AntiSlipperyEnabled
-        antiSlipperyButton.Text = "Anti-Slippery: " .. (AntiSlipperyEnabled and "ON" or "OFF")
-        if AntiSlipperyEnabled then
-            spawn(function()
-                local player = Players.LocalPlayer
-                local character = player.Character or player.CharacterAdded:Wait()
-                while AntiSlipperyEnabled do
-                    for _, part in pairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                        end
-                    end
-                    wait(0.1)
-                end
-            end)
-        else
-            local player = Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-                end
-            end
-        end
-    end)
-
-    -- Remove Hitbox button functionality
-    removeHitboxButton.MouseButton1Click:Connect(function()
-        RemoveHitboxEnabled = not RemoveHitboxEnabled
-        removeHitboxButton.Text = "Remove Hitbox: " .. (RemoveHitboxEnabled and "ON" or "OFF")
-        if RemoveHitboxEnabled then
-            local LocalPlayer = Players.LocalPlayer
-            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local function removeCollisionPart(character)
-                for destructionIteration = 1, 100 do
-                    wait()
-                    pcall(function()
-                        character:WaitForChild("CollisionPart"):Destroy()
-                    end)
-                end
-            end
-            removeCollisionPart(Character)
-            LocalPlayer.CharacterAdded:Connect(function(character)
-                removeCollisionPart(character)
-            end)
-        end
-    end)
-
-    -- Auto Pass Bomb button functionality
-    local autoPassConnection
-    autoPassBombButton.MouseButton1Click:Connect(function()
-        AutoPassEnabled = not AutoPassEnabled
-        autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
-        if AutoPassEnabled then
-            autoPassConnection = RunService.Stepped:Connect(function()
-                if not AutoPassEnabled then return end
-                pcall(function()
-                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
-                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
-                    end
-
-                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-                    if Bomb then
-                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
-                        local closestPlayer = getClosestPlayer()
-                        if closestPlayer and closestPlayer.Character then
-                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                            if humanoid then
-                                local path = PathfindingService:CreatePath({
-                                    AgentRadius = 2,
-                                    AgentHeight = 5,
-                                    AgentCanJump = true,
-                                    AgentJumpHeight = 10,
-                                    AgentMaxSlope = 45,
-                                })
-                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                                local waypoints = path:GetWaypoints()
-                                local waypointIndex = 1
-
-                                local function followPath()
-                                    if waypointIndex <= #waypoints then
-                                        local waypoint = waypoints[waypointIndex]
-                                        humanoid:MoveTo(waypoint.Position)
-                                        humanoid.MoveToFinished:Connect(function(reached)
-                                            if reached then
-                                                waypointIndex = waypointIndex + 1
-                                                followPath()
-                                            else
-                                                -- Path was blocked, recompute path
-                                                moveToClosestPlayer()
-                                            end
-                                        end)
-                                    end
-                                end
-
-                                followPath()
-                            end
-                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
-                        end
-                    end
-                end)
-            end)
-        else
-            if autoPassConnection then
-                autoPassConnection:Disconnect()
-            end
         end
     end)
 
