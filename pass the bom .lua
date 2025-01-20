@@ -29,6 +29,11 @@ end
 
 -- Function to get the closest player
 local function getClosestPlayer()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        print("LocalPlayer's character or HumanoidRootPart not available.")
+        return nil
+    end
+
     local closestPlayer = nil
     local shortestDistance = math.huge
 
@@ -42,11 +47,19 @@ local function getClosestPlayer()
         end
     end
 
+    if not closestPlayer then
+        print("No valid closest player found.")
+    end
     return closestPlayer
 end
 
 -- Function to move towards the closest player
 local function moveToClosestPlayer()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        print("LocalPlayer's character or HumanoidRootPart not available.")
+        return
+    end
+
     local closestPlayer = getClosestPlayer()
     if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
@@ -59,33 +72,50 @@ local function moveToClosestPlayer()
                 AgentJumpHeight = 10,
                 AgentMaxSlope = 45,
             })
-            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-            local waypoints = path:GetWaypoints()
-            local waypointIndex = 1
 
-            local function followPath()
-                if waypointIndex <= #waypoints then
-                    local waypoint = waypoints[waypointIndex]
-                    humanoid:MoveTo(waypoint.Position)
-                    humanoid.MoveToFinished:Connect(function(reached)
-                        if reached then
-                            waypointIndex = waypointIndex + 1
-                            followPath()
-                        else
-                            -- Path was blocked, recompute path
-                            moveToClosestPlayer()
-                        end
-                    end)
+            local success, errorMessage = pcall(function()
+                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+            end)
+
+            if success then
+                local waypoints = path:GetWaypoints()
+                local waypointIndex = 1
+
+                local function followPath()
+                    if waypointIndex <= #waypoints then
+                        local waypoint = waypoints[waypointIndex]
+                        humanoid:MoveTo(waypoint.Position)
+                        humanoid.MoveToFinished:Connect(function(reached)
+                            if reached then
+                                waypointIndex = waypointIndex + 1
+                                followPath()
+                            else
+                                print("Path blocked, recalculating...")
+                                moveToClosestPlayer()
+                            end
+                        end)
+                    end
                 end
-            end
 
-            followPath()
+                followPath()
+            else
+                print("Pathfinding failed:", errorMessage)
+            end
+        else
+            print("Humanoid not found in LocalPlayer's character.")
         end
+    else
+        print("No valid closest player to move to.")
     end
 end
 
 -- Function to pass the bomb to the closest player
 local function passBomb()
+    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        print("LocalPlayer's character or HumanoidRootPart not available.")
+        return
+    end
+
     if bombHolder == LocalPlayer and passToClosest then
         local closestPlayer = getClosestPlayer()
         if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -98,23 +128,31 @@ local function passBomb()
                     local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
                     tween:Play()
                     tween.Completed:Connect(function()
-                        bomb.Parent = closestPlayer.Character
-                        print("Bomb passed to:", closestPlayer.Name)
+                        if closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                            bomb.Parent = closestPlayer.Character
+                            print("Bomb passed to:", closestPlayer.Name)
+                        else
+                            print("Target player became invalid. Retrying...")
+                            passBomb() -- Retry passing bomb
+                        end
                     end)
+                else
+                    print("Bomb not found in LocalPlayer's character.")
                 end
             else
                 print("No players within bomb pass distance. Moving to closest player.")
                 moveToClosestPlayer()
             end
         else
-            print("No valid closest player found.")
+            print("No valid closest player found to pass the bomb.")
         end
+    else
+        print("Bomb passing not enabled or LocalPlayer is not the bomb holder.")
     end
 end
 
 -- Function to create the Yonkai menu
 local function createYonkaiMenu()
-    -- Create a new ScreenGui and set ResetOnSpawn to false
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "YonkaiMenu"
     screenGui.ResetOnSpawn = false
@@ -129,17 +167,15 @@ local function createYonkaiMenu()
     mainFrame.Visible = false
     mainFrame.Parent = screenGui
 
-    -- Rounded corners for main frame
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 15)
     corner.Parent = mainFrame
 
-    -- Drop shadow effect for main frame
     local shadow = Instance.new("ImageLabel")
     shadow.AnchorPoint = Vector2.new(0.5, 0.5)
     shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
     shadow.Size = UDim2.new(1, 50, 1, 50)
-    shadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
+    shadow.Image = "rbxassetid://1316045217"
     shadow.ImageColor3 = Color3.new(0, 0, 0)
     shadow.ImageTransparency = 0.5
     shadow.BackgroundTransparency = 1
@@ -155,7 +191,6 @@ local function createYonkaiMenu()
     titleLabel.Font = Enum.Font.SourceSansBold
     titleLabel.Parent = mainFrame
 
-    -- Adding a gradient effect to the title
     local titleGradient = Instance.new("UIGradient")
     titleGradient.Color = ColorSequence.new({
         ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
@@ -163,7 +198,6 @@ local function createYonkaiMenu()
     })
     titleGradient.Parent = titleLabel
 
-    -- Function to create buttons with debounce
     local function createButton(name, position, callback)
         local button = Instance.new("TextButton")
         button.Size = UDim2.new(0.8, 0, 0.1, 0)
@@ -175,25 +209,22 @@ local function createYonkaiMenu()
         button.Font = Enum.Font.SourceSans
         button.Parent = mainFrame
 
-        -- Debounced click handler
         local isEnabled = false
         button.MouseButton1Click:Connect(debounce(function()
             isEnabled = not isEnabled
             button.Text = name .. ": " .. (isEnabled and "ON" or "OFF")
             callback(isEnabled)
-        end, 0.5)) -- 0.5 seconds debounce delay
+        end, 0.5))
 
-        -- Rounded corners for the button
         local buttonCorner = Instance.new("UICorner")
         buttonCorner.CornerRadius = UDim.new(0, 10)
         buttonCorner.Parent = button
 
-        -- Button shadow effect
         local buttonShadow = Instance.new("ImageLabel")
         buttonShadow.AnchorPoint = Vector2.new(0.5, 0.5)
         buttonShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
         buttonShadow.Size = UDim2.new(1, 10, 1, 10)
-        buttonShadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
+        buttonShadow.Image = "rbxassetid://1316045217"
         buttonShadow.ImageColor3 = Color3.new(0, 0, 0)
         buttonShadow.ImageTransparency = 0.5
         buttonShadow.BackgroundTransparency = 1
@@ -203,7 +234,6 @@ local function createYonkaiMenu()
         return button
     end
 
-    -- Adding the buttons for each feature
     createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0), function(enabled)
         AntiSlipperyEnabled = enabled
         print("Anti-Slippery:", enabled and "Enabled" or "Disabled")
@@ -217,15 +247,13 @@ local function createYonkaiMenu()
         print("Auto Pass Bomb:", enabled and "Enabled" or "Disabled")
     end)
 
-    -- Toggle button to show/hide the main menu
     local toggleButton = Instance.new("ImageButton")
     toggleButton.Size = UDim2.new(0, 50, 0, 50)
     toggleButton.Position = UDim2.new(0, 20, 0, 20)
-    toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon asset ID
+    toggleButton.Image = "rbxassetid://6031075938"
     toggleButton.BackgroundTransparency = 1
     toggleButton.Parent = screenGui
 
-    -- Adding UI elements to enhance the toggle button appearance
     local toggleButtonCorner = Instance.new("UICorner")
     toggleButtonCorner.CornerRadius = UDim.new(0, 10)
     toggleButtonCorner.Parent = toggleButton
@@ -237,7 +265,6 @@ local function createYonkaiMenu()
 
     local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-    -- Toggle button functionality to show/hide the main menu
     toggleButton.MouseButton1Click:Connect(function()
         if mainFrame.Visible then
             local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -700)})
