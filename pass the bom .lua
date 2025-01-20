@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
 local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
 
 --// Settings
@@ -191,6 +192,48 @@ local function moveToClosestPlayer()
     end
 end
 
+--// Anti-Slippery Functionality
+local function applyAntiSlippery()
+    if AntiSlipperyEnabled then
+        spawn(function()
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            while AntiSlipperyEnabled do
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                    end
+                end
+                wait(0.1)
+            end
+        end)
+    else
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
+            end
+        end
+    end
+end
+
+--// Remove Hitbox Functionality
+local function removeHitbox()
+    if RemoveHitboxEnabled then
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        local function removeCollisionPart()
+            for _, part in pairs(character:GetDescendants()) do
+                if part.Name == "CollisionPart" then
+                    part:Destroy()
+                end
+            end
+        end
+        removeCollisionPart()
+        LocalPlayer.CharacterAdded:Connect(function(character)
+            removeCollisionPart()
+        end)
+    end
+end
+
 --// Create Menu (Original Script Preserved)
 local function createYonkaiMenu()
     local screenGui = Instance.new("ScreenGui")
@@ -208,21 +251,64 @@ local function createYonkaiMenu()
     corner.CornerRadius = UDim.new(0, 15)
     corner.Parent = mainFrame
 
-    local toggleButton = Instance.new("ImageButton")
-    toggleButton.Size = UDim2.new(0, 50, 0, 50)
-    toggleButton.Position = UDim2.new(0, 20, 0, 20)
-    toggleButton.Image = "rbxassetid://6031075938"
-    toggleButton.BackgroundTransparency = 1
-    toggleButton.Parent = screenGui
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
+    titleLabel.Text = "Yonkai Menu"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextSize = 28
+    titleLabel.Font = Enum.Font.SourceSansBold
+    titleLabel.Parent = mainFrame
 
-    toggleButton.MouseButton1Click:Connect(function()
-        mainFrame.Visible = not mainFrame.Visible
+    local antiSlipperyButton = Instance.new("TextButton")
+    antiSlipperyButton.Size = UDim2.new(1, 0, 0.1, 0)
+    antiSlipperyButton.Position = UDim2.new(0, 0, 0.15, 0)
+    antiSlipperyButton.Text = "Toggle Anti-Slippery"
+    antiSlipperyButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    antiSlipperyButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    antiSlipperyButton.Font = Enum.Font.SourceSans
+    antiSlipperyButton.TextSize = 24
+    antiSlipperyButton.Parent = mainFrame
+    antiSlipperyButton.MouseButton1Click:Connect(function()
+        AntiSlipperyEnabled = not AntiSlipperyEnabled
+        applyAntiSlippery()
     end)
 
-    print("Yonkai Menu Initialized")
+    local removeHitboxButton = Instance.new("TextButton")
+    removeHitboxButton.Size = UDim2.new(1, 0, 0.1, 0)
+    removeHitboxButton.Position = UDim2.new(0, 0, 0.25, 0)
+    removeHitboxButton.Text = "Toggle Remove Hitbox"
+    removeHitboxButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    removeHitboxButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    removeHitboxButton.Font = Enum.Font.SourceSans
+    removeHitboxButton.TextSize = 24
+    removeHitboxButton.Parent = mainFrame
+    removeHitboxButton.MouseButton1Click:Connect(function()
+        RemoveHitboxEnabled = not RemoveHitboxEnabled
+        removeHitbox()
+    end)
+
+    local autoPassButton = Instance.new("TextButton")
+    autoPassButton.Size = UDim2.new(1, 0, 0.1, 0)
+    autoPassButton.Position = UDim2.new(0, 0, 0.35, 0)
+    autoPassButton.Text = "Toggle Auto Pass Bomb"
+    autoPassButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    autoPassButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    autoPassButton.Font = Enum.Font.SourceSans
+    autoPassButton.TextSize = 24
+    autoPassButton.Parent = mainFrame
+    autoPassButton.MouseButton1Click:Connect(function()
+        AutoPassEnabled = not AutoPassEnabled
+        if AutoPassEnabled then
+            passBomb()
+        end
+    end)
+
+    -- Add functionality for the other buttons...
 end
 
---// Initialize
+-- Ensure the menu is created
 createYonkaiMenu()
-createLeaderboard()
-print("Pass the Bomb script fully loaded with all features.")
+
+-- Recreate the menu if the player respawns
+LocalPlayer.CharacterAdded:Connect(createYonkaiMenu)
