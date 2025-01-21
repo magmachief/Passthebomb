@@ -15,6 +15,8 @@ local bombHolder = nil
 local bombPassDistance = 10
 local passToClosest = true
 local AutoPassEnabled = false
+local currentTarget = nil -- Target lock to avoid back-and-forth switching
+
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 
@@ -122,6 +124,39 @@ local function passBomb()
     end
 end
 
+-- Function to handle auto-passing the bomb with target lock
+local function autoPassBomb()
+    if AutoPassEnabled then
+        local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+        if Bomb then
+            -- Assign a target if none exists or if the target becomes invalid
+            if not currentTarget or not currentTarget.Character or not currentTarget.Character:FindFirstChild("HumanoidRootPart") then
+                currentTarget = getClosestPlayer()
+            end
+
+            if currentTarget and currentTarget.Character and currentTarget.Character:FindFirstChild("HumanoidRootPart") then
+                local targetPosition = currentTarget.Character.HumanoidRootPart.Position
+                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    humanoid:MoveTo(targetPosition)
+                    humanoid.MoveToFinished:Connect(function(reached)
+                        if reached then
+                            local BombEvent = Bomb:FindFirstChild("RemoteEvent")
+                            if BombEvent then
+                                BombEvent:FireServer(currentTarget.Character, currentTarget.Character:FindFirstChild("CollisionPart"))
+                                currentTarget = nil -- Release the target lock after passing the bomb
+                            end
+                        end
+                    end)
+                end
+            else
+                print("Target invalid or too far. Recomputing...")
+                currentTarget = nil
+            end
+        end
+    end
+end
+
 -- Function to create the Yonkai menu
 local function createYonkaiMenu()
     -- Create a new ScreenGui and set ResetOnSpawn to false
@@ -131,8 +166,8 @@ local function createYonkaiMenu()
     screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 350, 0, 450)
-    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+    mainFrame.Size = UDim2.new(0, 350, 0, 550) -- Increased height for the slider
+    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -275)
     mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     mainFrame.BorderSizePixel = 0
     mainFrame.BackgroundTransparency = 0.1
@@ -144,20 +179,9 @@ local function createYonkaiMenu()
     corner.CornerRadius = UDim.new(0, 15)
     corner.Parent = mainFrame
 
-    -- Drop shadow effect for main frame
-    local shadow = Instance.new("ImageLabel")
-    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    shadow.Size = UDim2.new(1, 50, 1, 50)
-    shadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
-    shadow.ImageColor3 = Color3.new(0, 0, 0)
-    shadow.ImageTransparency = 0.5
-    shadow.BackgroundTransparency = 1
-    shadow.ZIndex = 0
-    shadow.Parent = mainFrame
-
+    -- Title Label
     local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
+    titleLabel.Size = UDim2.new(1, 0, 0.1, 0)
     titleLabel.Text = "Yonkai Menu"
     titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
     titleLabel.BackgroundTransparency = 1
@@ -165,18 +189,10 @@ local function createYonkaiMenu()
     titleLabel.Font = Enum.Font.SourceSansBold
     titleLabel.Parent = mainFrame
 
-    -- Adding a gradient effect to the title
-    local titleGradient = Instance.new("UIGradient")
-    titleGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 255))
-    })
-    titleGradient.Parent = titleLabel
-
     -- Function to create buttons
     local function createButton(text, position)
         local button = Instance.new("TextButton")
-        button.Size = UDim2.new(0.8, 0, 0.15, 0)
+        button.Size = UDim2.new(0.8, 0, 0.1, 0)
         button.Position = position
         button.Text = text .. ": OFF"
         button.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
@@ -190,24 +206,60 @@ local function createYonkaiMenu()
         buttonCorner.CornerRadius = UDim.new(0, 10)
         buttonCorner.Parent = button
 
-        -- Button shadow effect
-        local buttonShadow = Instance.new("ImageLabel")
-        buttonShadow.AnchorPoint = Vector2.new(0.5, 0.5)
-        buttonShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-        buttonShadow.Size = UDim2.new(1, 10, 1, 10)
-        buttonShadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
-        buttonShadow.ImageColor3 = Color3.new(0, 0, 0)
-        buttonShadow.ImageTransparency = 0.5
-        buttonShadow.BackgroundTransparency = 1
-        buttonShadow.ZIndex = 0
-        buttonShadow.Parent = button
-
         return button
     end
 
+    -- Buttons
     local antiSlipperyButton = createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0))
-    local removeHitboxButton = createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.4, 0))
-    local autoPassBombButton = createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.6, 0))
+    local removeHitboxButton = createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.35, 0))
+    local autoPassBombButton = createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.5, 0))
+
+    -- Slider for bombPassDistance
+    local sliderFrame = Instance.new("Frame")
+    sliderFrame.Size = UDim2.new(0.8, 0, 0.1, 0)
+    sliderFrame.Position = UDim2.new(0.1, 0, 0.65, 0)
+    sliderFrame.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+    sliderFrame.BorderSizePixel = 0
+    sliderFrame.Parent = mainFrame
+
+    local slider = Instance.new("ImageButton")
+    slider.Size = UDim2.new(0, 20, 1, 0)
+    slider.Position = UDim2.new((bombPassDistance - 5) / 50, 0, 0, 0) -- Normalize initial position
+    slider.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    slider.Parent = sliderFrame
+
+    local sliderLabel = Instance.new("TextLabel")
+    sliderLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    sliderLabel.Position = UDim2.new(0, 0, -0.5, 0)
+    sliderLabel.Text = "Bomb Pass Distance: " .. bombPassDistance
+    sliderLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sliderLabel.BackgroundTransparency = 1
+    sliderLabel.TextSize = 16
+    sliderLabel.Font = Enum.Font.SourceSans
+    sliderLabel.Parent = sliderFrame
+
+    -- Slider functionality
+    local dragging = false
+    slider.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+        end
+    end)
+
+    slider.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = false
+        end
+    end)
+
+    sliderFrame.InputChanged:Connect(function(input)
+        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+            local relativePosition = math.clamp((input.Position.X - sliderFrame.AbsolutePosition.X) / sliderFrame.AbsoluteSize.X, 0, 1)
+            slider.Position = UDim2.new(relativePosition, 0, 0, 0)
+            bombPassDistance = math.floor(5 + relativePosition * 50) -- Range: 5 to 55
+            sliderLabel.Text = "Bomb Pass Distance: " .. bombPassDistance
+        end
+    end)
 
     -- Toggle button to show/hide the main menu
     local toggleButton = Instance.new("ImageButton")
@@ -217,19 +269,8 @@ local function createYonkaiMenu()
     toggleButton.BackgroundTransparency = 1
     toggleButton.Parent = screenGui
 
-    -- Adding UI elements to enhance the toggle button appearance
-    local toggleButtonCorner = Instance.new("UICorner")
-    toggleButtonCorner.CornerRadius = UDim.new(0, 10)
-    toggleButtonCorner.Parent = toggleButton
-
-    local toggleButtonStroke = Instance.new("UIStroke")
-    toggleButtonStroke.Thickness = 2
-    toggleButtonStroke.Color = Color3.fromRGB(255, 255, 255)
-    toggleButtonStroke.Parent = toggleButton
-
     local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 
-    -- Toggle button functionality to show/hide the main menu
     toggleButton.MouseButton1Click:Connect(function()
         if mainFrame.Visible then
             local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -700)})
@@ -240,7 +281,7 @@ local function createYonkaiMenu()
         else
             mainFrame.Position = UDim2.new(0.5, -175, 0.5, -700)
             mainFrame.Visible = true
-            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -225)})
+            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -275)})
             tween:Play()
         end
     end)
@@ -249,119 +290,25 @@ local function createYonkaiMenu()
     antiSlipperyButton.MouseButton1Click:Connect(function()
         AntiSlipperyEnabled = not AntiSlipperyEnabled
         antiSlipperyButton.Text = "Anti-Slippery: " .. (AntiSlipperyEnabled and "ON" or "OFF")
-        if AntiSlipperyEnabled then
-            spawn(function()
-                local player = Players.LocalPlayer
-                local character = player.Character or player.CharacterAdded:Wait()
-                while AntiSlipperyEnabled do
-                    for _, part in pairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                        end
-                    end
-                    wait(0.1)
-                end
-            end)
-        else
-            local player = Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-                end
-            end
-        end
     end)
 
     -- Remove Hitbox button functionality
     removeHitboxButton.MouseButton1Click:Connect(function()
         RemoveHitboxEnabled = not RemoveHitboxEnabled
         removeHitboxButton.Text = "Remove Hitbox: " .. (RemoveHitboxEnabled and "ON" or "OFF")
-        if RemoveHitboxEnabled then
-            local LocalPlayer = Players.LocalPlayer
-            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local function removeCollisionPart(character)
-                for destructionIteration = 1, 100 do
-                    wait()
-                    pcall(function()
-                        character:WaitForChild("CollisionPart"):Destroy()
-                    end)
-                end
-            end
-            removeCollisionPart(Character)
-            LocalPlayer.CharacterAdded:Connect(function(character)
-                removeCollisionPart(character)
-            end)
-        end
     end)
 
     -- Auto Pass Bomb button functionality
-    local autoPassConnection
     autoPassBombButton.MouseButton1Click:Connect(function()
         AutoPassEnabled = not AutoPassEnabled
         autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
         if AutoPassEnabled then
-            autoPassConnection = RunService.Stepped:Connect(function()
-                if not AutoPassEnabled then return end
-                pcall(function()
-                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
-                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
-                    end
-
-                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-                    if Bomb then
-                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
-                        local closestPlayer = getClosestPlayer()
-                        if closestPlayer and closestPlayer.Character then
-                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                            if humanoid then
-                                local path = PathfindingService:CreatePath({
-                                    AgentRadius = 2,
-                                    AgentHeight = 5,
-                                    AgentCanJump = true,
-                                    AgentJumpHeight = 10,
-                                    AgentMaxSlope = 45,
-                                })
-                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                                local waypoints = path:GetWaypoints()
-                                local waypointIndex = 1
-
-                                local function followPath()
-                                    if waypointIndex <= #waypoints then
-                                        local waypoint = waypoints[waypointIndex]
-                                        humanoid:MoveTo(waypoint.Position)
-                                        humanoid.MoveToFinished:Connect(function(reached)
-                                            if reached then
-                                                waypointIndex = waypointIndex + 1
-                                                followPath()
-                                            else
-                                                -- Path was blocked, recompute path
-                                                moveToClosestPlayer()
-                                            end
-                                        end)
-                                    end
-                                end
-
-                                followPath()
-                            end
-                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
-                        end
-                    end
-                end)
-            end)
+            RunService.Stepped:Connect(autoPassBomb)
         else
-            if autoPassConnection then
-                autoPassConnection:Disconnect()
-            end
+            currentTarget = nil -- Reset the target lock
         end
     end)
-
-    print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
 end
 
 -- Ensure the menu is created and toggle button stays visible
 createYonkaiMenu()
-
--- Recreate the menu if the player respawns
-LocalPlayer.CharacterAdded:Connect(createYonkaiMenu)
