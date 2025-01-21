@@ -123,7 +123,6 @@ local function passBomb()
         end
     end
 end
-
 -- Function to handle auto-passing the bomb with target lock
 local function autoPassBomb()
     if AutoPassEnabled then
