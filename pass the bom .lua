@@ -138,6 +138,8 @@ local function createAdvancedMenu()
     titleLabel.BackgroundTransparency = 1
     titleLabel.TextSize = 32
     titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.TextScaled = true
+    titleLabel.TextWrapped = true
     titleLabel.Parent = mainFrame
 
     -- Adding a gradient effect to the title
@@ -158,6 +160,8 @@ local function createAdvancedMenu()
         button.TextColor3 = Color3.fromRGB(255, 255, 255)
         button.TextSize = 20
         button.Font = Enum.Font.Gotham
+        button.TextScaled = true
+        button.TextWrapped = true
         button.Parent = mainFrame
         
         -- Rounded corners for the button
@@ -182,6 +186,8 @@ local function createAdvancedMenu()
         buttonText.TextColor3 = Color3.fromRGB(255, 255, 255)
         buttonText.TextSize = 20
         buttonText.Font = Enum.Font.Gotham
+        buttonText.TextScaled = true
+        buttonText.TextWrapped = true
         buttonText.Parent = button
         
         -- Hover effect
