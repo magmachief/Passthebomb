@@ -70,6 +70,34 @@ local function moveToClosestPlayer()
     end
 end
 
+-- Function to pass the bomb to the closest player
+local function passBomb()
+    if bombHolder == LocalPlayer and passToClosest then
+        local closestPlayer = getClosestPlayer()
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance <= bombPassDistance then
+                local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
+                if bomb then
+                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
+                    tween:Play()
+                    tween.Completed:Connect(function()
+                        bomb.Parent = closestPlayer.Character
+                        print("Bomb passed to:", closestPlayer.Name)
+                    end)
+                end
+            else
+                print("No players within bomb pass distance. Moving to closest player.")
+                moveToClosestPlayer()
+            end
+        else
+            print("No valid closest player found.")
+        end
+    end
+end
+
 -- Function to create 3D Yonkai menu
 local function create3DYonkaiMenu()
     -- Create a new part and configure its properties
