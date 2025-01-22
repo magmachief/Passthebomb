@@ -1,4 +1,4 @@
-    --// Services
+--// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -70,68 +70,37 @@ local function moveToClosestPlayer()
     end
 end
 
--- Function to pass the bomb to the closest player
-local function passBomb()
-    if bombHolder == LocalPlayer and passToClosest then
-        local closestPlayer = getClosestPlayer()
-        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
-            if distance <= bombPassDistance then
-                local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
-                if bomb then
-                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                    local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
-                    tween:Play()
-                    tween.Completed:Connect(function()
-                        bomb.Parent = closestPlayer.Character
-                        print("Bomb passed to:", closestPlayer.Name)
-                    end)
-                end
-            else
-                print("No players within bomb pass distance. Moving to closest player.")
-                moveToClosestPlayer()
-            end
-        else
-            print("No valid closest player found.")
-        end
-    end
-end
+-- Function to create 3D Yonkai menu
+local function create3DYonkaiMenu()
+    -- Create a new part and configure its properties
+    local menuPart = Instance.new("Part")
+    menuPart.Name = "YonkaiMenu"
+    menuPart.Size = Vector3.new(4, 6, 0.2)
+    menuPart.Anchored = true
+    menuPart.CanCollide = false
+    menuPart.Position = LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0)
+    menuPart.Parent = workspace
 
--- Function to create the Yonkai menu
-local function createYonkaiMenu()
-    -- Create a new ScreenGui and set ResetOnSpawn to false
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "YonkaiMenu"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+    -- Create a SurfaceGui and attach it to the part
+    local surfaceGui = Instance.new("SurfaceGui")
+    surfaceGui.Adornee = menuPart
+    surfaceGui.Face = Enum.NormalId.Front
+    surfaceGui.CanvasSize = Vector2.new(400, 600)
+    surfaceGui.Parent = menuPart
 
+    -- Create a frame to hold the buttons
     local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(0, 350, 0, 450)
-    mainFrame.Position = UDim2.new(0.5, -175, 0.5, -225)
+    mainFrame.Size = UDim2.new(1, 0, 1, 0)
     mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    mainFrame.BorderSizePixel = 0
-    mainFrame.BackgroundTransparency = 0.1
-    mainFrame.Visible = false
-    mainFrame.Parent = screenGui
+    mainFrame.BackgroundTransparency = 0.5
+    mainFrame.Parent = surfaceGui
 
     -- Rounded corners for main frame
     local corner = Instance.new("UICorner")
     corner.CornerRadius = UDim.new(0, 15)
     corner.Parent = mainFrame
 
-    -- Drop shadow effect for main frame
-    local shadow = Instance.new("ImageLabel")
-    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    shadow.Size = UDim2.new(1, 50, 1, 50)
-    shadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
-    shadow.ImageColor3 = Color3.new(0, 0, 0)
-    shadow.ImageTransparency = 0.5
-    shadow.BackgroundTransparency = 1
-    shadow.ZIndex = 0
-    shadow.Parent = mainFrame
-
+    -- Title label
     local titleLabel = Instance.new("TextLabel")
     titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
     titleLabel.Text = "Yonkai Menu"
@@ -166,60 +135,12 @@ local function createYonkaiMenu()
         buttonCorner.CornerRadius = UDim.new(0, 10)
         buttonCorner.Parent = button
 
-        -- Button shadow effect
-        local buttonShadow = Instance.new("ImageLabel")
-        buttonShadow.AnchorPoint = Vector2.new(0.5, 0.5)
-        buttonShadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-        buttonShadow.Size = UDim2.new(1, 10, 1, 10)
-        buttonShadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
-        buttonShadow.ImageColor3 = Color3.new(0, 0, 0)
-        buttonShadow.ImageTransparency = 0.5
-        buttonShadow.BackgroundTransparency = 1
-        buttonShadow.ZIndex = 0
-        buttonShadow.Parent = button
-
         return button
     end
 
     local antiSlipperyButton = createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0))
     local removeHitboxButton = createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.4, 0))
     local autoPassBombButton = createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.6, 0))
-
-    -- Toggle button to show/hide the main menu
-    local toggleButton = Instance.new("ImageButton")
-    toggleButton.Size = UDim2.new(0, 50, 0, 50)
-    toggleButton.Position = UDim2.new(0, 20, 0, 20)
-    toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon asset ID
-    toggleButton.BackgroundTransparency = 1
-    toggleButton.Parent = screenGui
-
-    -- Adding UI elements to enhance the toggle button appearance
-    local toggleButtonCorner = Instance.new("UICorner")
-    toggleButtonCorner.CornerRadius = UDim.new(0, 10)
-    toggleButtonCorner.Parent = toggleButton
-
-    local toggleButtonStroke = Instance.new("UIStroke")
-    toggleButtonStroke.Thickness = 2
-    toggleButtonStroke.Color = Color3.fromRGB(255, 255, 255)
-    toggleButtonStroke.Parent = toggleButton
-
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
-    -- Toggle button functionality to show/hide the main menu
-    toggleButton.MouseButton1Click:Connect(function()
-        if mainFrame.Visible then
-            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -700)})
-            tween:Play()
-            tween.Completed:Connect(function()
-                mainFrame.Visible = false
-            end)
-        else
-            mainFrame.Position = UDim2.new(0.5, -175, 0.5, -700)
-            mainFrame.Visible = true
-            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -175, 0.5, -225)})
-            tween:Play()
-        end
-    end)
 
     -- Anti-Slippery button functionality
     antiSlipperyButton.MouseButton1Click:Connect(function()
@@ -333,11 +254,11 @@ local function createYonkaiMenu()
         end
     end)
 
-    print("Pass The Bomb Script Loaded with Enhanced Yonkai Menu and Gojo Icon")
+    print("Pass The Bomb Script Loaded with 3D Yonkai Menu")
 end
 
 -- Ensure the menu is created and toggle button stays visible
-createYonkaiMenu()
+create3DYonkaiMenu()
 
 -- Recreate the menu if the player respawns
-LocalPlayer.CharacterAdded:Connect(createYonkaiMenu)
+LocalPlayer.CharacterAdded:Connect(create3DYonkaiMenu)
