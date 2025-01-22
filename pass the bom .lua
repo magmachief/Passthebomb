@@ -1,14 +1,11 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
-local StarterGui = game:GetService("StarterGui")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
-local bombHolder = nil
 local bombPassDistance = 10
-local passToClosest = true
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
@@ -31,154 +28,66 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- Function to move towards the closest player
-local function moveToClosestPlayer()
-    local closestPlayer = getClosestPlayer()
-    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            local path = PathfindingService:CreatePath({
-                AgentRadius = 2,
-                AgentHeight = 5,
-                AgentCanJump = true,
-                AgentJumpHeight = 10,
-                AgentMaxSlope = 45,
-            })
-            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-            local waypoints = path:GetWaypoints()
-            local waypointIndex = 1
+-- Function to create a 3D menu
+local function create3DMenu()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
 
-            local function followPath()
-                if waypointIndex <= #waypoints then
-                    local waypoint = waypoints[waypointIndex]
-                    humanoid:MoveTo(waypoint.Position)
-                    humanoid.MoveToFinished:Connect(function(reached)
-                        if reached then
-                            waypointIndex = waypointIndex + 1
-                            followPath()
-                        else
-                            -- Path was blocked, recompute path
-                            moveToClosestPlayer()
-                        end
-                    end)
-                end
-            end
+    -- Create the 3D Menu model
+    local menuModel = Instance.new("Model")
+    menuModel.Name = "3DMenu"
+    menuModel.Parent = workspace
 
-            followPath()
-        end
-    end
-end
+    local menuBase = Instance.new("Part")
+    menuBase.Size = Vector3.new(6, 1, 4)
+    menuBase.Position = humanoidRootPart.Position + Vector3.new(0, 3, -7)
+    menuBase.Anchored = true
+    menuBase.BrickColor = BrickColor.new("Bright blue")
+    menuBase.Name = "MenuBase"
+    menuBase.Parent = menuModel
 
--- Function to pass the bomb to the closest player
-local function passBomb()
-    if bombHolder == LocalPlayer and passToClosest then
-        local closestPlayer = getClosestPlayer()
-        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
-            if distance <= bombPassDistance then
-                local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
-                if bomb then
-                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                    local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
-                    tween:Play()
-                    tween.Completed:Connect(function()
-                        bomb.Parent = closestPlayer.Character
-                        print("Bomb passed to:", closestPlayer.Name)
-                    end)
-                end
-            else
-                print("No players within bomb pass distance. Moving to closest player.")
-                moveToClosestPlayer()
-            end
-        else
-            print("No valid closest player found.")
-        end
-    end
-end
+    -- Utility function to create buttons with proximity prompt
+    local function createButton(name, color, position, callback)
+        local button = Instance.new("Part")
+        button.Size = Vector3.new(5, 1, 1)
+        button.Position = menuBase.Position + position
+        button.Anchored = true
+        button.BrickColor = BrickColor.new(color)
+        button.Name = name
+        button.Parent = menuModel
 
--- Function to create 3D Yonkai menu
-local function create3DYonkaiMenu()
-    -- Create a new part and configure its properties
-    local menuPart = Instance.new("Part")
-    menuPart.Name = "YonkaiMenu"
-    menuPart.Size = Vector3.new(4, 6, 0.2)
-    menuPart.Anchored = true
-    menuPart.CanCollide = false
-    menuPart.Position = LocalPlayer.Character.HumanoidRootPart.Position + Vector3.new(0, 5, 0)
-    menuPart.Parent = workspace
+        local prompt = Instance.new("ProximityPrompt")
+        prompt.ActionText = name
+        prompt.ObjectText = "Press E"
+        prompt.RequiresLineOfSight = false
+        prompt.HoldDuration = 0.5
+        prompt.Parent = button
 
-    -- Create a SurfaceGui and attach it to the part
-    local surfaceGui = Instance.new("SurfaceGui")
-    surfaceGui.Adornee = menuPart
-    surfaceGui.Face = Enum.NormalId.Front
-    surfaceGui.CanvasSize = Vector2.new(400, 600)
-    surfaceGui.Parent = menuPart
+        prompt.Triggered:Connect(callback)
 
-    -- Create a frame to hold the buttons
-    local mainFrame = Instance.new("Frame")
-    mainFrame.Size = UDim2.new(1, 0, 1, 0)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    mainFrame.BackgroundTransparency = 0.5
-    mainFrame.Parent = surfaceGui
-
-    -- Rounded corners for main frame
-    local corner = Instance.new("UICorner")
-    corner.CornerRadius = UDim.new(0, 15)
-    corner.Parent = mainFrame
-
-    -- Title label
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
-    titleLabel.Text = "Yonkai Menu"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.TextSize = 28
-    titleLabel.Font = Enum.Font.SourceSansBold
-    titleLabel.Parent = mainFrame
-
-    -- Adding a gradient effect to the title
-    local titleGradient = Instance.new("UIGradient")
-    titleGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 0, 0)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(0, 0, 255))
-    })
-    titleGradient.Parent = titleLabel
-
-    -- Function to create buttons
-    local function createButton(text, position)
-        local button = Instance.new("TextButton")
-        button.Size = UDim2.new(0.8, 0, 0.15, 0)
-        button.Position = position
-        button.Text = text .. ": OFF"
-        button.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 20
-        button.Font = Enum.Font.SourceSans
-        button.Parent = mainFrame
-
-        -- Rounded corners for the button
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 10)
-        buttonCorner.Parent = button
+        -- Add animation when interacting
+        prompt.Triggered:Connect(function()
+            local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+            local tween = TweenService:Create(button, tweenInfo, {Size = Vector3.new(5.2, 1.2, 1.2)})
+            tween:Play()
+            tween.Completed:Connect(function()
+                local resetTween = TweenService:Create(button, tweenInfo, {Size = Vector3.new(5, 1, 1)})
+                resetTween:Play()
+            end)
+        end)
 
         return button
     end
 
-    local antiSlipperyButton = createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0))
-    local removeHitboxButton = createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.4, 0))
-    local autoPassBombButton = createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.6, 0))
-
-    -- Anti-Slippery button functionality
-    antiSlipperyButton.MouseButton1Click:Connect(function()
+    -- Anti-Slippery button
+    createButton("Anti-Slippery", "Bright green", Vector3.new(0, 1, 1.5), function()
         AntiSlipperyEnabled = not AntiSlipperyEnabled
-        antiSlipperyButton.Text = "Anti-Slippery: " .. (AntiSlipperyEnabled and "ON" or "OFF")
+        print("Anti-Slippery:", AntiSlipperyEnabled and "ON" or "OFF")
+
         if AntiSlipperyEnabled then
             spawn(function()
-                local player = Players.LocalPlayer
-                local character = player.Character or player.CharacterAdded:Wait()
                 while AntiSlipperyEnabled do
+                    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                     for _, part in pairs(character:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
@@ -188,8 +97,7 @@ local function create3DYonkaiMenu()
                 end
             end)
         else
-            local player = Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
             for _, part in pairs(character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
@@ -198,95 +106,58 @@ local function create3DYonkaiMenu()
         end
     end)
 
-    -- Remove Hitbox button functionality
-    removeHitboxButton.MouseButton1Click:Connect(function()
+    -- Remove Hitbox button
+    createButton("Remove Hitbox", "Bright yellow", Vector3.new(0, 1, 0), function()
         RemoveHitboxEnabled = not RemoveHitboxEnabled
-        removeHitboxButton.Text = "Remove Hitbox: " .. (RemoveHitboxEnabled and "ON" or "OFF")
+        print("Remove Hitbox:", RemoveHitboxEnabled and "ON" or "OFF")
+
         if RemoveHitboxEnabled then
-            local LocalPlayer = Players.LocalPlayer
-            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local function removeCollisionPart(character)
-                for destructionIteration = 1, 100 do
-                    wait()
-                    pcall(function()
-                        character:WaitForChild("CollisionPart"):Destroy()
-                    end)
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local function removeCollisionParts()
+                for _, part in pairs(character:GetDescendants()) do
+                    if part.Name == "CollisionPart" then
+                        part:Destroy()
+                    end
                 end
             end
-            removeCollisionPart(Character)
-            LocalPlayer.CharacterAdded:Connect(function(character)
-                removeCollisionPart(character)
+            removeCollisionParts()
+            character.DescendantAdded:Connect(function(descendant)
+                if descendant.Name == "CollisionPart" then
+                    descendant:Destroy()
+                end
             end)
         end
     end)
 
-    -- Auto Pass Bomb button functionality
-    local autoPassConnection
-    autoPassBombButton.MouseButton1Click:Connect(function()
+    -- Auto Pass Bomb button
+    createButton("Auto Pass Bomb", "Bright red", Vector3.new(0, 1, -1.5), function()
         AutoPassEnabled = not AutoPassEnabled
-        autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
+        print("Auto Pass Bomb:", AutoPassEnabled and "ON" or "OFF")
+
         if AutoPassEnabled then
-            autoPassConnection = RunService.Stepped:Connect(function()
-                if not AutoPassEnabled then return end
-                pcall(function()
-                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
-                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
-                    end
-
-                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-                    if Bomb then
-                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
-                        local closestPlayer = getClosestPlayer()
-                        if closestPlayer and closestPlayer.Character then
-                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                            if humanoid then
-                                local path = PathfindingService:CreatePath({
-                                    AgentRadius = 2,
-                                    AgentHeight = 5,
-                                    AgentCanJump = true,
-                                    AgentJumpHeight = 10,
-                                    AgentMaxSlope = 45,
-                                })
-                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                                local waypoints = path:GetWaypoints()
-                                local waypointIndex = 1
-
-                                local function followPath()
-                                    if waypointIndex <= #waypoints then
-                                        local waypoint = waypoints[waypointIndex]
-                                        humanoid:MoveTo(waypoint.Position)
-                                        humanoid.MoveToFinished:Connect(function(reached)
-                                            if reached then
-                                                waypointIndex = waypointIndex + 1
-                                                followPath()
-                                            else
-                                                -- Path was blocked, recompute path
-                                                moveToClosestPlayer()
-                                            end
-                                        end)
-                                    end
-                                end
-
-                                followPath()
-                            end
-                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+            spawn(function()
+                while AutoPassEnabled do
+                    local closestPlayer = getClosestPlayer()
+                    if closestPlayer and closestPlayer.Character then
+                        local bomb = LocalPlayer.Backpack:FindFirstChild("Bomb") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb"))
+                        if bomb then
+                            bomb.Parent = closestPlayer.Character
+                            print("Bomb passed to:", closestPlayer.Name)
                         end
                     end
-                end)
+                    wait(1)
+                end
             end)
-        else
-            if autoPassConnection then
-                autoPassConnection:Disconnect()
-            end
         end
     end)
 
-    print("Pass The Bomb Script Loaded with 3D Yonkai Menu")
+    print("3D Menu created!")
 end
 
--- Ensure the menu is created and toggle button stays visible
-create3DYonkaiMenu()
+-- Create the menu when the player spawns
+LocalPlayer.CharacterAdded:Connect(create3DMenu)
 
--- Recreate the menu if the player respawns
-LocalPlayer.CharacterAdded:Connect(create3DYonkaiMenu)
+-- Create the menu initially
+if LocalPlayer.Character then
+    create3DMenu()
+end
