@@ -1,11 +1,13 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local PathfindingService = game:GetService("PathfindingService")
 local TweenService = game:GetService("TweenService")
+local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
 
+local bombHolder = nil
 local bombPassDistance = 10
+local passToClosest = true
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
@@ -28,66 +30,228 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- Function to create a 3D menu
-local function create3DMenu()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local humanoidRootPart = character:WaitForChild("HumanoidRootPart")
+-- Function to move towards the closest player
+local function moveToClosestPlayer()
+    local closestPlayer = getClosestPlayer()
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            local path = PathfindingService:CreatePath({
+                AgentRadius = 2,
+                AgentHeight = 5,
+                AgentCanJump = true,
+                AgentJumpHeight = 10,
+                AgentMaxSlope = 45,
+            })
+            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+            local waypoints = path:GetWaypoints()
+            local waypointIndex = 1
 
-    -- Create the 3D Menu model
-    local menuModel = Instance.new("Model")
-    menuModel.Name = "3DMenu"
-    menuModel.Parent = workspace
+            local function followPath()
+                if waypointIndex <= #waypoints then
+                    local waypoint = waypoints[waypointIndex]
+                    humanoid:MoveTo(waypoint.Position)
+                    humanoid.MoveToFinished:Connect(function(reached)
+                        if reached then
+                            waypointIndex = waypointIndex + 1
+                            followPath()
+                        else
+                            -- Path was blocked, recompute path
+                            moveToClosestPlayer()
+                        end
+                    end)
+                end
+            end
 
-    local menuBase = Instance.new("Part")
-    menuBase.Size = Vector3.new(6, 1, 4)
-    menuBase.Position = humanoidRootPart.Position + Vector3.new(0, 3, -7)
-    menuBase.Anchored = true
-    menuBase.BrickColor = BrickColor.new("Bright blue")
-    menuBase.Name = "MenuBase"
-    menuBase.Parent = menuModel
+            followPath()
+        end
+    end
+end
 
-    -- Utility function to create buttons with proximity prompt
-    local function createButton(name, color, position, callback)
-        local button = Instance.new("Part")
-        button.Size = Vector3.new(5, 1, 1)
-        button.Position = menuBase.Position + position
-        button.Anchored = true
-        button.BrickColor = BrickColor.new(color)
-        button.Name = name
-        button.Parent = menuModel
+-- Function to pass the bomb to the closest player
+local function passBomb()
+    if bombHolder == LocalPlayer and passToClosest then
+        local closestPlayer = getClosestPlayer()
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance <= bombPassDistance then
+                local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
+                if bomb then
+                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+                    local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
+                    tween:Play()
+                    tween.Completed:Connect(function()
+                        bomb.Parent = closestPlayer.Character
+                        print("Bomb passed to:", closestPlayer.Name)
+                    end)
+                end
+            else
+                print("No players within bomb pass distance. Moving to closest player.")
+                moveToClosestPlayer()
+            end
+        else
+            print("No valid closest player found.")
+        end
+    end
+end
 
-        local prompt = Instance.new("ProximityPrompt")
-        prompt.ActionText = name
-        prompt.ObjectText = "Press E"
-        prompt.RequiresLineOfSight = false
-        prompt.HoldDuration = 0.5
-        prompt.Parent = button
+-- Function to create the Advanced Menu
+local function createAdvancedMenu()
+    -- Create a new ScreenGui and set ResetOnSpawn to false
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "AdvancedMenu"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 
-        prompt.Triggered:Connect(callback)
+    local mainFrame = Instance.new("Frame")
+    mainFrame.Size = UDim2.new(0, 450, 0, 600)
+    mainFrame.Position = UDim2.new(0.5, -225, 0.5, -300)
+    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    mainFrame.BackgroundTransparency = 0.2
+    mainFrame.BorderSizePixel = 0
+    mainFrame.Visible = false
+    mainFrame.Parent = screenGui
 
-        -- Add animation when interacting
-        prompt.Triggered:Connect(function()
-            local tweenInfo = TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-            local tween = TweenService:Create(button, tweenInfo, {Size = Vector3.new(5.2, 1.2, 1.2)})
-            tween:Play()
-            tween.Completed:Connect(function()
-                local resetTween = TweenService:Create(button, tweenInfo, {Size = Vector3.new(5, 1, 1)})
-                resetTween:Play()
-            end)
+    -- Rounded corners for main frame
+    local frameCorner = Instance.new("UICorner")
+    frameCorner.CornerRadius = UDim.new(0, 20)
+    frameCorner.Parent = mainFrame
+
+    -- Drop shadow effect for main frame
+    local shadow = Instance.new("ImageLabel")
+    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
+    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
+    shadow.Size = UDim2.new(1, 60, 1, 60)
+    shadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
+    shadow.ImageColor3 = Color3.new(0, 0, 0)
+    shadow.ImageTransparency = 0.7
+    shadow.BackgroundTransparency = 1
+    shadow.ZIndex = 0
+    shadow.Parent = mainFrame
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
+    titleLabel.Text = "Advanced Menu"
+    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.TextSize = 32
+    titleLabel.Font = Enum.Font.GothamBold
+    titleLabel.Parent = mainFrame
+
+    -- Adding a gradient effect to the title
+    local titleGradient = Instance.new("UIGradient")
+    titleGradient.Color = ColorSequence.new({
+        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 85, 85)),
+        ColorSequenceKeypoint.new(1, Color3.fromRGB(85, 85, 255))
+    })
+    titleGradient.Parent = titleLabel
+
+    -- Function to create buttons with custom icons
+    local function createButton(text, position, iconId)
+        local button = Instance.new("TextButton")
+        button.Size = UDim2.new(0.8, 0, 0.1, 0)
+        button.Position = position
+        button.Text = ""
+        button.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
+        button.TextColor3 = Color3.fromRGB(255, 255, 255)
+        button.TextSize = 20
+        button.Font = Enum.Font.Gotham
+        button.Parent = mainFrame
+        
+        -- Rounded corners for the button
+        local buttonCorner = Instance.new("UICorner")
+        buttonCorner.CornerRadius = UDim.new(0, 10)
+        buttonCorner.Parent = button
+        
+        -- Button icon
+        local icon = Instance.new("ImageLabel")
+        icon.Size = UDim2.new(0, 24, 0, 24)
+        icon.Position = UDim2.new(0.05, 0, 0.5, -12)
+        icon.Image = iconId
+        icon.BackgroundTransparency = 1
+        icon.Parent = button
+        
+        -- Button text
+        local buttonText = Instance.new("TextLabel")
+        buttonText.Size = UDim2.new(0.8, 0, 1, 0)
+        buttonText.Position = UDim2.new(0.2, 0, 0, 0)
+        buttonText.Text = text
+        buttonText.BackgroundTransparency = 1
+        buttonText.TextColor3 = Color3.fromRGB(255, 255, 255)
+        buttonText.TextSize = 20
+        buttonText.Font = Enum.Font.Gotham
+        buttonText.Parent = button
+        
+        -- Hover effect
+        button.MouseEnter:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(0, 255, 255)}):Play()
         end)
-
+        button.MouseLeave:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(0, 128, 255)}):Play()
+        end)
+        
+        -- Click effect
+        button.MouseButton1Click:Connect(function()
+            TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0.75, 0, 0.09, 0)}):Play()
+            wait(0.1)
+            TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0.8, 0, 0.1, 0)}):Play()
+        end)
+        
         return button
     end
 
-    -- Anti-Slippery button
-    createButton("Anti-Slippery", "Bright green", Vector3.new(0, 1, 1.5), function()
-        AntiSlipperyEnabled = not AntiSlipperyEnabled
-        print("Anti-Slippery:", AntiSlipperyEnabled and "ON" or "OFF")
+    -- Create buttons with icons
+    local antiSlipperyButton = createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0), "rbxassetid://3926305904")
+    local removeHitboxButton = createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.35, 0), "rbxassetid://3926307971")
+    local autoPassBombButton = createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.5, 0), "rbxassetid://3926305904")
 
+    -- Toggle button to show/hide the main menu
+    local toggleButton = Instance.new("ImageButton")
+    toggleButton.Size = UDim2.new(0, 50, 0, 50)
+    toggleButton.Position = UDim2.new(0, 20, 0, 20)
+    toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon asset ID
+    toggleButton.BackgroundTransparency = 1
+    toggleButton.Parent = screenGui
+
+    -- Adding UI elements to enhance the toggle button appearance
+    local toggleButtonCorner = Instance.new("UICorner")
+    toggleButtonCorner.CornerRadius = UDim.new(0, 10)
+    toggleButtonCorner.Parent = toggleButton
+
+    local toggleButtonStroke = Instance.new("UIStroke")
+    toggleButtonStroke.Thickness = 2
+    toggleButtonStroke.Color = Color3.fromRGB(255, 255, 255)
+    toggleButtonStroke.Parent = toggleButton
+
+    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+    -- Toggle button functionality to show/hide the main menu
+    toggleButton.MouseButton1Click:Connect(function()
+        if mainFrame.Visible then
+            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -225, 0.5, -700)})
+            tween:Play()
+            tween.Completed:Connect(function()
+                mainFrame.Visible = false
+            end)
+        else
+            mainFrame.Position = UDim2.new(0.5, -225, 0.5, -700)
+            mainFrame.Visible = true
+            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -225, 0.5, -300)})
+            tween:Play()
+        end
+    end)
+
+    -- Anti-Slippery button functionality
+    antiSlipperyButton.MouseButton1Click:Connect(function()
+        AntiSlipperyEnabled = not AntiSlipperyEnabled
+        antiSlipperyButton.Text = "Anti-Slippery: " .. (AntiSlipperyEnabled and "ON" or "OFF")
         if AntiSlipperyEnabled then
             spawn(function()
+                local player = Players.LocalPlayer
+                local character = player.Character or player.CharacterAdded:Wait()
                 while AntiSlipperyEnabled do
-                    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                     for _, part in pairs(character:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
@@ -97,7 +261,8 @@ local function create3DMenu()
                 end
             end)
         else
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local player = Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
             for _, part in pairs(character:GetDescendants()) do
                 if part:IsA("BasePart") then
                     part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
@@ -106,58 +271,95 @@ local function create3DMenu()
         end
     end)
 
-    -- Remove Hitbox button
-    createButton("Remove Hitbox", "Bright yellow", Vector3.new(0, 1, 0), function()
+    -- Remove Hitbox button functionality
+    removeHitboxButton.MouseButton1Click:Connect(function()
         RemoveHitboxEnabled = not RemoveHitboxEnabled
-        print("Remove Hitbox:", RemoveHitboxEnabled and "ON" or "OFF")
-
+        removeHitboxButton.Text = "Remove Hitbox: " .. (RemoveHitboxEnabled and "ON" or "OFF")
         if RemoveHitboxEnabled then
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local function removeCollisionParts()
-                for _, part in pairs(character:GetDescendants()) do
-                    if part.Name == "CollisionPart" then
-                        part:Destroy()
-                    end
+            local LocalPlayer = Players.LocalPlayer
+            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            local function removeCollisionPart(character)
+                for destructionIteration = 1, 100 do
+                    wait()
+                    pcall(function()
+                        character:WaitForChild("CollisionPart"):Destroy()
+                    end)
                 end
             end
-            removeCollisionParts()
-            character.DescendantAdded:Connect(function(descendant)
-                if descendant.Name == "CollisionPart" then
-                    descendant:Destroy()
-                end
+            removeCollisionPart(Character)
+            LocalPlayer.CharacterAdded:Connect(function(character)
+                removeCollisionPart(character)
             end)
         end
     end)
 
-    -- Auto Pass Bomb button
-    createButton("Auto Pass Bomb", "Bright red", Vector3.new(0, 1, -1.5), function()
+    -- Auto Pass Bomb button functionality
+    local autoPassConnection
+    autoPassBombButton.MouseButton1Click:Connect(function()
         AutoPassEnabled = not AutoPassEnabled
-        print("Auto Pass Bomb:", AutoPassEnabled and "ON" or "OFF")
-
+        autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
         if AutoPassEnabled then
-            spawn(function()
-                while AutoPassEnabled do
-                    local closestPlayer = getClosestPlayer()
-                    if closestPlayer and closestPlayer.Character then
-                        local bomb = LocalPlayer.Backpack:FindFirstChild("Bomb") or (LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb"))
-                        if bomb then
-                            bomb.Parent = closestPlayer.Character
-                            print("Bomb passed to:", closestPlayer.Name)
+            autoPassConnection = RunService.Stepped:Connect(function()
+                if not AutoPassEnabled then return end
+                pcall(function()
+                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
+                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
+                    end
+
+                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+                    if Bomb then
+                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
+                        local closestPlayer = getClosestPlayer()
+                        if closestPlayer and closestPlayer.Character then
+                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                            if humanoid then
+                                local path = PathfindingService:CreatePath({
+                                    AgentRadius = 2,
+                                    AgentHeight = 5,
+                                    AgentCanJump = true,
+                                    AgentJumpHeight = 10,
+                                    AgentMaxSlope = 45,
+                                })
+                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+                                local waypoints = path:GetWaypoints()
+                                local waypointIndex = 1
+
+                                local function followPath()
+                                    if waypointIndex <= #waypoints then
+                                        local waypoint = waypoints[waypointIndex]
+                                        humanoid:MoveTo(waypoint.Position)
+                                        humanoid.MoveToFinished:Connect(function(reached)
+                                            if reached then
+                                                waypointIndex = waypointIndex + 1
+                                                followPath()
+                                            else
+                                                -- Path was blocked, recompute path
+                                                moveToClosestPlayer()
+                                            end
+                                        end)
+                                    end
+                                end
+
+                                followPath()
+                            end
+                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
                         end
                     end
-                    wait(1)
-                end
+                end)
             end)
+        else
+            if autoPassConnection then
+                autoPassConnection:Disconnect()
+            end
         end
     end)
 
-    print("3D Menu created!")
+    print("Advanced Menu Loaded with Animations and Best Features")
 end
 
--- Create the menu when the player spawns
-LocalPlayer.CharacterAdded:Connect(create3DMenu)
+-- Ensure the menu is created and toggle button stays visible
+createAdvancedMenu()
 
--- Create the menu initially
-if LocalPlayer.Character then
-    create3DMenu()
-end
+-- Recreate the menu if the player respawns
+LocalPlayer.CharacterAdded:Connect(createAdvancedMenu)
