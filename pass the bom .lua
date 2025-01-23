@@ -216,52 +216,7 @@ AutomatedTab:AddToggle({
         if AutoPassEnabled then
             autoPassConnection = RunService.Stepped:Connect(function()
                 if not AutoPassEnabled then return end
-                pcall(function()
-                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
-                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
-                    end
-
-                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-                    if Bomb then
-                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
-                        local closestPlayer = getClosestPlayer()
-                        if closestPlayer and closestPlayer.Character then
-                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                            if humanoid then
-                                local path = PathfindingService:CreatePath({
-                                    AgentRadius = 2,
-                                    AgentHeight = 5,
-                                    AgentCanJump = true,
-                                    AgentJumpHeight = 10,
-                                    AgentMaxSlope = 45,
-                                })
-                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                                local waypoints = path:GetWaypoints()
-                                local waypointIndex = 1
-
-                                local function followPath()
-                                    if waypointIndex <= #waypoints then
-                                        local waypoint = waypoints[waypointIndex]
-                                        humanoid:MoveTo(waypoint.Position)
-                                        humanoid.MoveToFinished:Connect(function(reached)
-                                            if reached then
-                                                waypointIndex = waypointIndex + 1
-                                                followPath()
-                                            else
-                                                -- Path was blocked, recompute path
-                                                moveToClosestPlayer()
-                                            end
-                                        end)
-                                    end
-                                end
-
-                                followPath()
-                            end
-                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
-                        end
-                    end
-                end)
+                passBomb()
             end)
         else
             if autoPassConnection then
@@ -387,6 +342,7 @@ local function autoPassBomb()
 
                     followPath()
                 end
+                print("Passing bomb to:", closestPlayer.Name)
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
         end
@@ -438,6 +394,9 @@ if RemoveHitboxEnabled then
         removeCollisionPart(character)
     end)
 end
+
+-- Initialize OrionLib UI
 OrionLib:Init()
 logMessage("Yon Menu Initialized Successfully")
+
 print("Pass The Bomb Script Loaded")
