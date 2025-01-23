@@ -75,6 +75,9 @@ toggleButton.Position = UDim2.new(0, 20, 0, 20) -- Adjusted position to avoid po
 toggleButton.Image = "rbxassetid://6031075938" -- Replace with your desired icon asset
 toggleButton.BackgroundTransparency = 0.5 -- Temporarily set to 0.5 to help identify its position
 toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Temporarily set to red for visibility
+toggleButton.BorderSizePixel = 2 -- Adding a border for visibility
+toggleButton.BorderColor3 = Color3.fromRGB(0, 0, 0) -- Border color
+toggleButton.ZIndex = 10 -- Ensure the button is on top
 toggleButton.Name = "MenuToggleButton"
 
 -- Parent the toggle button to PlayerGui for visibility
