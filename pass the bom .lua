@@ -1,13 +1,15 @@
--- Load Orion Library
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/refs/heads/main/Orion%20Lib.lua"))()
-
--- Variables and Default Settings
+--// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
+local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
+-- Load Orion Library
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/refs/heads/main/Orion%20Lib.lua"))()
+
+-- Default Settings and Preferences
 local bombHolder = nil
 local bombPassDistance = 10
 local passToClosest = true
@@ -18,15 +20,7 @@ local preferences = {
     AutoPassEnabled = false,
 }
 
--- Theme Presets
-local themes = {
-    Dark = {Background = Color3.fromRGB(30, 30, 30), TextColor = Color3.fromRGB(255, 255, 255)},
-    Light = {Background = Color3.fromRGB(230, 230, 230), TextColor = Color3.fromRGB(0, 0, 0)},
-    Ocean = {Background = Color3.fromRGB(0, 128, 255), TextColor = Color3.fromRGB(255, 255, 255)},
-    Sunset = {Background = Color3.fromRGB(255, 128, 0), TextColor = Color3.fromRGB(0, 0, 0)},
-}
-
--- Functions
+-- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -44,6 +38,7 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
+-- Function to pass the bomb to the closest player
 local function passBomb()
     if bombHolder == LocalPlayer and passToClosest then
         local closestPlayer = getClosestPlayer()
@@ -61,11 +56,16 @@ local function passBomb()
                         print("Bomb passed to:", closestPlayer.Name)
                     end)
                 end
+            else
+                print("No players within bomb pass distance. Searching for a new target...")
             end
+        else
+            print("No valid closest player found.")
         end
     end
 end
 
+-- Anti-Slippery functionality
 local function applyAntiSlippery(enabled)
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     if enabled then
@@ -86,6 +86,7 @@ local function applyAntiSlippery(enabled)
     end
 end
 
+-- Remove Hitbox functionality
 local function removeHitbox(enabled)
     local function cleanHitbox(character)
         for _, part in pairs(character:GetDescendants()) do
@@ -104,10 +105,10 @@ end
 
 -- Orion Menu
 local Window = OrionLib:MakeWindow({
-    Name = "Advanced Menu",
+    Name = "Yonkai Menu",
     HidePremium = false,
     SaveConfig = true,
-    ConfigFolder = "AdvancedMenuConfig"
+    ConfigFolder = "YonkaiMenuConfig"
 })
 
 -- Tabs
@@ -148,7 +149,10 @@ MainTab:AddToggle({
     Callback = function(value)
         preferences.AutoPassEnabled = value
         if value then
+            print("Auto Pass Bomb: Enabled")
             RunService.Stepped:Connect(passBomb)
+        else
+            print("Auto Pass Bomb: Disabled")
         end
     end
 })
@@ -159,14 +163,24 @@ SettingsTab:AddDropdown({
     Default = "Dark",
     Options = {"Dark", "Light", "Ocean", "Sunset"},
     Callback = function(theme)
-        OrionLib:MakeNotification({
-            Name = "Theme Changed",
-            Content = "Switched to " .. theme .. " theme.",
-            Image = "rbxassetid://4483345998",
-            Time = 5
-        })
+        print("Theme changed to:", theme)
     end
 })
+
+-- Toggle Button for Menu Visibility
+local toggleButton = Instance.new("ImageButton")
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 20, 0, 20)
+toggleButton.Image = "rbxassetid://6031075938" -- Replace with your desired icon asset ID
+toggleButton.BackgroundTransparency = 1
+toggleButton.Parent = game.CoreGui
+
+local menuVisible = true
+
+toggleButton.MouseButton1Click:Connect(function()
+    menuVisible = not menuVisible
+    Window:Toggle(menuVisible)
+end)
 
 -- Finalize Orion Menu
 OrionLib:Init()
