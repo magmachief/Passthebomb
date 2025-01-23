@@ -3,16 +3,43 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
+local SoundService = game:GetService("SoundService")
 local LocalPlayer = Players.LocalPlayer
 
+-- Default Settings and Preferences
 local bombHolder = nil
 local bombPassDistance = 10
 local passToClosest = true
-local AutoPassEnabled = false
-local AntiSlipperyEnabled = false
-local RemoveHitboxEnabled = false
+local preferences = {
+    AntiSlipperyEnabled = false,
+    RemoveHitboxEnabled = false,
+    AutoPassEnabled = false,
+    Theme = "Dark", -- Dark, Light, Ocean, Sunset
+    ButtonLayout = "Vertical", -- Vertical or Horizontal
+    Font = Enum.Font.Gotham, -- Default font
+}
 
--- Function to get the closest player
+-- Theme presets
+local themes = {
+    Dark = {Background = Color3.fromRGB(30, 30, 30), TextColor = Color3.fromRGB(255, 255, 255)},
+    Light = {Background = Color3.fromRGB(230, 230, 230), TextColor = Color3.fromRGB(0, 0, 0)},
+    Ocean = {Background = Color3.fromRGB(0, 128, 255), TextColor = Color3.fromRGB(255, 255, 255)},
+    Sunset = {Background = Color3.fromRGB(255, 128, 0), TextColor = Color3.fromRGB(0, 0, 0)},
+}
+
+-- Play a sound effect
+local function playSound(soundId, volume)
+    local sound = Instance.new("Sound")
+    sound.SoundId = "rbxassetid://" .. soundId
+    sound.Volume = volume or 1
+    sound.Parent = SoundService
+    sound:Play()
+    sound.Ended:Connect(function()
+        sound:Destroy()
+    end)
+end
+
+-- Get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -30,7 +57,7 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- Function to move towards the closest player
+-- Move to the closest player
 local function moveToClosestPlayer()
     local closestPlayer = getClosestPlayer()
     if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -57,7 +84,7 @@ local function moveToClosestPlayer()
                             waypointIndex = waypointIndex + 1
                             followPath()
                         else
-                            -- Path was blocked, recompute path
+                            -- Path blocked; recompute
                             moveToClosestPlayer()
                         end
                     end)
@@ -69,7 +96,7 @@ local function moveToClosestPlayer()
     end
 end
 
--- Function to pass the bomb to the closest player
+-- Pass the bomb to the closest player
 local function passBomb()
     if bombHolder == LocalPlayer and passToClosest then
         local closestPlayer = getClosestPlayer()
@@ -97,9 +124,116 @@ local function passBomb()
     end
 end
 
--- Function to create the Advanced Menu
+-- Anti-Slippery functionality
+local function applyAntiSlippery(enabled)
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    if enabled then
+        print("Anti-Slippery: ON")
+        while preferences.AntiSlipperyEnabled do
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                end
+            end
+            RunService.Heartbeat:Wait()
+        end
+    else
+        print("Anti-Slippery: OFF")
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
+            end
+        end
+    end
+end
+
+-- Remove Hitbox functionality
+local function removeHitbox(enabled)
+    local function cleanHitbox(character)
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name == "CollisionPart" then
+                part:Destroy()
+            end
+        end
+    end
+
+    if enabled then
+        print("Remove Hitbox: ON")
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        cleanHitbox(character)
+        LocalPlayer.CharacterAdded:Connect(cleanHitbox)
+    else
+        print("Remove Hitbox: OFF")
+    end
+end
+
+-- Show confirmation popup with animations and sound
+local function showConfirmationPopup(actionText, onConfirm)
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
+
+    local popupFrame = Instance.new("Frame")
+    popupFrame.Size = UDim2.new(0, 0, 0, 0) -- Start small for scaling animation
+    popupFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
+    popupFrame.AnchorPoint = Vector2.new(0.5, 0.5)
+    popupFrame.BackgroundColor3 = themes[preferences.Theme].Background
+    popupFrame.Parent = screenGui
+
+    local popupCorner = Instance.new("UICorner")
+    popupCorner.CornerRadius = UDim.new(0, 10)
+    popupCorner.Parent = popupFrame
+
+    local titleLabel = Instance.new("TextLabel")
+    titleLabel.Size = UDim2.new(1, 0, 0.5, 0)
+    titleLabel.Text = actionText
+    titleLabel.TextColor3 = themes[preferences.Theme].TextColor
+    titleLabel.TextSize = 20
+    titleLabel.Font = preferences.Font
+    titleLabel.TextWrapped = true
+    titleLabel.BackgroundTransparency = 1
+    titleLabel.Parent = popupFrame
+
+    local yesButton = Instance.new("TextButton")
+    yesButton.Size = UDim2.new(0.4, 0, 0.3, 0)
+    yesButton.Position = UDim2.new(0.1, 0, 0.6, 0)
+    yesButton.Text = "Yes"
+    yesButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+    yesButton.Font = preferences.Font
+    yesButton.TextColor3 = themes[preferences.Theme].TextColor
+    yesButton.Parent = popupFrame
+
+    local noButton = Instance.new("TextButton")
+    noButton.Size = UDim2.new(0.4, 0, 0.3, 0)
+    noButton.Position = UDim2.new(0.5, 0, 0.6, 0)
+    noButton.Text = "No"
+    noButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
+    noButton.Font = preferences.Font
+    noButton.TextColor3 = themes[preferences.Theme].TextColor
+    noButton.Parent = popupFrame
+
+    playSound("1234567890", 1) -- Replace with your sound asset ID
+    popupFrame.BackgroundTransparency = 1
+    local fadeIn = TweenService:Create(popupFrame, TweenInfo.new(0.5), {Size = UDim2.new(0, 300, 0, 150), BackgroundTransparency = 0})
+    fadeIn:Play()
+
+    yesButton.MouseButton1Click:Connect(function()
+        playSound("1234567891", 1) -- Confirm sound
+        onConfirm()
+        screenGui:Destroy()
+    end)
+
+    noButton.MouseButton1Click:Connect(function()
+        playSound("1234567892", 1) -- Cancel sound
+        local fadeOut = TweenService:Create(popupFrame, TweenInfo.new(0.5), {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1})
+        fadeOut:Play()
+        fadeOut.Completed:Connect(function()
+            screenGui:Destroy()
+        end)
+    end)
+end
+
+-- Create the Advanced Menu
 local function createAdvancedMenu()
-    -- Create a new ScreenGui and set ResetOnSpawn to false
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "AdvancedMenu"
     screenGui.ResetOnSpawn = false
@@ -108,264 +242,48 @@ local function createAdvancedMenu()
     local mainFrame = Instance.new("Frame")
     mainFrame.Size = UDim2.new(0, 450, 0, 600)
     mainFrame.Position = UDim2.new(0.5, -225, 0.5, -300)
-    mainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    mainFrame.BackgroundTransparency = 0.2
-    mainFrame.BorderSizePixel = 0
-    mainFrame.Visible = false
+    mainFrame.BackgroundColor3 = themes[preferences.Theme].Background
     mainFrame.Parent = screenGui
 
-    -- Rounded corners for main frame
-    local frameCorner = Instance.new("UICorner")
-    frameCorner.CornerRadius = UDim.new(0, 20)
-    frameCorner.Parent = mainFrame
+    local buttonLayout = Instance.new(preferences.ButtonLayout == "Vertical" and "UIListLayout" or "UIGridLayout")
+    if buttonLayout:IsA("UIListLayout") then
+        buttonLayout.Padding = UDim.new(0.02, 0)
+    else
+        buttonLayout.CellSize = UDim2.new(0.4, 0, 0.1, 0)
+        buttonLayout.CellPadding = UDim2.new(0.02, 0)
+    end
+    buttonLayout.Parent = mainFrame
 
-    -- Drop shadow effect for main frame
-    local shadow = Instance.new("ImageLabel")
-    shadow.AnchorPoint = Vector2.new(0.5, 0.5)
-    shadow.Position = UDim2.new(0.5, 0, 0.5, 0)
-    shadow.Size = UDim2.new(1, 60, 1, 60)
-    shadow.Image = "rbxassetid://1316045217" -- Shadow image asset ID
-    shadow.ImageColor3 = Color3.new(0, 0, 0)
-    shadow.ImageTransparency = 0.7
-    shadow.BackgroundTransparency = 1
-    shadow.ZIndex = 0
-    shadow.Parent = mainFrame
-
-    local titleLabel = Instance.new("TextLabel")
-    titleLabel.Size = UDim2.new(1, 0, 0.15, 0)
-    titleLabel.Text = "Advanced Menu"
-    titleLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    titleLabel.BackgroundTransparency = 1
-    titleLabel.TextSize = 32
-    titleLabel.Font = Enum.Font.GothamBold
-    titleLabel.TextScaled = true
-    titleLabel.TextWrapped = true
-    titleLabel.Parent = mainFrame
-
-    -- Adding a gradient effect to the title
-    local titleGradient = Instance.new("UIGradient")
-    titleGradient.Color = ColorSequence.new({
-        ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 85, 85)),
-        ColorSequenceKeypoint.new(1, Color3.fromRGB(85, 85, 255))
-    })
-    titleGradient.Parent = titleLabel
-
-    -- Function to create buttons with custom icons
-    local function createButton(text, position, iconId)
+    local function createToggleButton(text, preferenceKey, toggleFunction)
         local button = Instance.new("TextButton")
         button.Size = UDim2.new(0.8, 0, 0.1, 0)
-        button.Position = position
-        button.Text = ""
-        button.BackgroundColor3 = Color3.fromRGB(0, 128, 255)
-        button.TextColor3 = Color3.fromRGB(255, 255, 255)
-        button.TextSize = 20
-        button.Font = Enum.Font.Gotham
-        button.TextScaled = true
-        button.TextWrapped = true
+        button.Text = text .. ": " .. (preferences[preferenceKey] and "ON" or "OFF")
+        button.BackgroundColor3 = preferences[preferenceKey] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 128, 255)
+        button.TextColor3 = themes[preferences.Theme].TextColor
+        button.Font = preferences.Font
         button.Parent = mainFrame
-        
-        -- Rounded corners for the button
-        local buttonCorner = Instance.new("UICorner")
-        buttonCorner.CornerRadius = UDim.new(0, 10)
-        buttonCorner.Parent = button
-        
-        -- Button icon
-        local icon = Instance.new("ImageLabel")
-        icon.Size = UDim2.new(0, 24, 0, 24)
-        icon.Position = UDim2.new(0.05, 0, 0.5, -12)
-        icon.Image = iconId
-        icon.BackgroundTransparency = 1
-        icon.Parent = button
-        
-        -- Button text
-        local buttonText = Instance.new("TextLabel")
-        buttonText.Size = UDim2.new(0.8, 0, 1, 0)
-        buttonText.Position = UDim2.new(0.2, 0, 0, 0)
-        buttonText.Text = text
-        buttonText.BackgroundTransparency = 1
-        buttonText.TextColor3 = Color3.fromRGB(255, 255, 255)
-        buttonText.TextSize = 20
-        buttonText.Font = Enum.Font.Gotham
-        buttonText.TextScaled = true
-        buttonText.TextWrapped = true
-        buttonText.Parent = button
-        
-        -- Hover effect
-        button.MouseEnter:Connect(function()
-            TweenService:Create(button, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(0, 255, 255)}):Play()
-        end)
-        button.MouseLeave:Connect(function()
-            TweenService:Create(button, TweenInfo.new(0.3), {BackgroundColor3 = Color3.fromRGB(0, 128, 255)}):Play()
-        end)
-        
-        -- Click effect
+
         button.MouseButton1Click:Connect(function()
-            TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0.75, 0, 0.09, 0)}):Play()
-            wait(0.1)
-            TweenService:Create(button, TweenInfo.new(0.1), {Size = UDim2.new(0.8, 0, 0.1, 0)}):Play()
+            playSound("1234567893", 0.5) -- Button click sound
+            preferences[preferenceKey] = not preferences[preferenceKey]
+            button.Text = text .. ": " .. (preferences[preferenceKey] and "ON" or "OFF")
+            button.BackgroundColor3 = preferences[preferenceKey] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 128, 255)
+            toggleFunction(preferences[preferenceKey])
         end)
-        
-        return button
     end
 
-    -- Create buttons with icons
-    local antiSlipperyButton = createButton("Anti-Slippery", UDim2.new(0.1, 0, 0.2, 0), "rbxassetid://3926305904")
-    local removeHitboxButton = createButton("Remove Hitbox", UDim2.new(0.1, 0, 0.35, 0), "rbxassetid://3926307971")
-    local autoPassBombButton = createButton("Auto Pass Bomb", UDim2.new(0.1, 0, 0.5, 0), "rbxassetid://3926305904")
-
-    -- Toggle button to show/hide the main menu
-    local toggleButton = Instance.new("ImageButton")
-    toggleButton.Size = UDim2.new(0, 50, 0, 50)
-    toggleButton.Position = UDim2.new(0, 20, 0, 20)
-    toggleButton.Image = "rbxassetid://6031075938" -- Gojo icon asset ID
-    toggleButton.BackgroundTransparency = 1
-    toggleButton.Parent = screenGui
-
-    -- Adding UI elements to enhance the toggle button appearance
-    local toggleButtonCorner = Instance.new("UICorner")
-    toggleButtonCorner.CornerRadius = UDim.new(0, 10)
-    toggleButtonCorner.Parent = toggleButton
-
-    local toggleButtonStroke = Instance.new("UIStroke")
-    toggleButtonStroke.Thickness = 2
-    toggleButtonStroke.Color = Color3.fromRGB(255, 255, 255)
-    toggleButtonStroke.Parent = toggleButton
-
-    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-
-    -- Toggle button functionality to show/hide the main menu
-    toggleButton.MouseButton1Click:Connect(function()
-        if mainFrame.Visible then
-            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -225, 0.5, -700)})
-            tween:Play()
-            tween.Completed:Connect(function()
-                mainFrame.Visible = false
-            end)
+    -- Add toggle buttons with their respective functions
+    createToggleButton("Anti-Slippery", "AntiSlipperyEnabled", applyAntiSlippery)
+    createToggleButton("Remove Hitbox", "RemoveHitboxEnabled", removeHitbox)
+    createToggleButton("Auto Pass Bomb", "AutoPassEnabled", function(enabled)
+        if enabled then
+            print("Auto Pass Bomb: ON")
+            RunService.Stepped:Connect(passBomb)
         else
-            mainFrame.Position = UDim2.new(0.5, -225, 0.5, -700)
-            mainFrame.Visible = true
-            local tween = TweenService:Create(mainFrame, tweenInfo, {Position = UDim2.new(0.5, -225, 0.5, -300)})
-            tween:Play()
+            print("Auto Pass Bomb: OFF")
         end
     end)
-
-    -- Anti-Slippery button functionality
-    antiSlipperyButton.MouseButton1Click:Connect(function()
-        AntiSlipperyEnabled = not AntiSlipperyEnabled
-        antiSlipperyButton.Text = "Anti-Slippery: " .. (AntiSlipperyEnabled and "ON" or "OFF")
-        if AntiSlipperyEnabled then
-            spawn(function()
-                local player = Players.LocalPlayer
-                local character = player.Character or player.CharacterAdded:Wait()
-                while AntiSlipperyEnabled do
-                    for _, part in pairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                        end
-                    end
-                    wait(0.1)
-                end
-            end)
-        else
-            local player = Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-                end
-            end
-        end
-    end)
-
-    -- Remove Hitbox button functionality
-    removeHitboxButton.MouseButton1Click:Connect(function()
-        RemoveHitboxEnabled = not RemoveHitboxEnabled
-        removeHitboxButton.Text = "Remove Hitbox: " .. (RemoveHitboxEnabled and "ON" or "OFF")
-        if RemoveHitboxEnabled then
-            local LocalPlayer = Players.LocalPlayer
-            local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            local function removeCollisionPart(character)
-                for destructionIteration = 1, 100 do
-                    wait()
-                    pcall(function()
-                        character:WaitForChild("CollisionPart"):Destroy()
-                    end)
-                end
-            end
-            removeCollisionPart(Character)
-            LocalPlayer.CharacterAdded:Connect(function(character)
-                removeCollisionPart(character)
-            end)
-        end
-    end)
-
-    -- Auto Pass Bomb button functionality
-    local autoPassConnection
-    autoPassBombButton.MouseButton1Click:Connect(function()
-        AutoPassEnabled = not AutoPassEnabled
-        autoPassBombButton.Text = "Auto Pass Bomb: " .. (AutoPassEnabled and "ON" or "OFF")
-        if AutoPassEnabled then
-            autoPassConnection = RunService.Stepped:Connect(function()
-                if not AutoPassEnabled then return end
-                pcall(function()
-                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
-                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
-                    end
-
-                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-                    if Bomb then
-                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
-                        local closestPlayer = getClosestPlayer()
-                        if closestPlayer and closestPlayer.Character then
-                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                            if humanoid then
-                                local path = PathfindingService:CreatePath({
-                                    AgentRadius = 2,
-                                    AgentHeight = 5,
-                                    AgentCanJump = true,
-                                    AgentJumpHeight = 10,
-                                    AgentMaxSlope = 45,
-                                })
-                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                                local waypoints = path:GetWaypoints()
-                                local waypointIndex = 1
-
-                                local function followPath()
-                                    if waypointIndex <= #waypoints then
-                                        local waypoint = waypoints[waypointIndex]
-                                        humanoid:MoveTo(waypoint.Position)
-                                        humanoid.MoveToFinished:Connect(function(reached)
-                                            if reached then
-                                                waypointIndex = waypointIndex + 1
-                                                followPath()
-                                            else
-                                                -- Path was blocked, recompute path
-                                                moveToClosestPlayer()
-                                            end
-                                        end)
-                                    end
-                                end
-
-                                followPath()
-                            end
-                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
-                        end
-                    end
-                end)
-            end)
-        else
-            if autoPassConnection then
-                autoPassConnection:Disconnect()
-            end
-        end
-    end)
-
-    print("Advanced Menu Loaded with Animations and Best Features")
 end
 
--- Ensure the menu is created and toggle button stays visible
+-- Initialize the menu
 createAdvancedMenu()
-
--- Recreate the menu if the player respawns
-LocalPlayer.CharacterAdded:Connect(createAdvancedMenu)
