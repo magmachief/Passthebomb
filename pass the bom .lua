@@ -71,9 +71,10 @@ SettingsTab:AddDropdown({
 -- Mobile-Friendly Toggle Button
 local toggleButton = Instance.new("ImageButton")
 toggleButton.Size = UDim2.new(0, 50, 0, 50) -- Size of the button
-toggleButton.Position = UDim2.new(0, 10, 0, 10) -- Top-left corner with some padding
+toggleButton.Position = UDim2.new(0, 20, 0, 20) -- Adjusted position to avoid potential overlap
 toggleButton.Image = "rbxassetid://6031075938" -- Replace with your desired icon asset
-toggleButton.BackgroundTransparency = 1
+toggleButton.BackgroundTransparency = 0.5 -- Temporarily set to 0.5 to help identify its position
+toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Temporarily set to red for visibility
 toggleButton.Name = "MenuToggleButton"
 
 -- Parent the toggle button to PlayerGui for visibility
