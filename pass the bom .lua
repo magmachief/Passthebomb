@@ -13,6 +13,8 @@ local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 
+local autoPassConnection
+
 -- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -209,6 +211,63 @@ AutomatedTab:AddToggle({
     Callback = function(value)
         AutoPassEnabled = value
         logMessage("Auto Pass Bomb: " .. (AutoPassEnabled and "Enabled" or "Disabled"))
+
+        -- Manage the connection to RunService.Stepped
+        if AutoPassEnabled then
+            autoPassConnection = RunService.Stepped:Connect(function()
+                if not AutoPassEnabled then return end
+                pcall(function()
+                    if LocalPlayer.Backpack:FindFirstChild("Bomb") then
+                        LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
+                    end
+
+                    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+                    if Bomb then
+                        local BombEvent = Bomb:FindFirstChild("RemoteEvent")
+                        local closestPlayer = getClosestPlayer()
+                        if closestPlayer and closestPlayer.Character then
+                            local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                            local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                            if humanoid then
+                                local path = PathfindingService:CreatePath({
+                                    AgentRadius = 2,
+                                    AgentHeight = 5,
+                                    AgentCanJump = true,
+                                    AgentJumpHeight = 10,
+                                    AgentMaxSlope = 45,
+                                })
+                                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+                                local waypoints = path:GetWaypoints()
+                                local waypointIndex = 1
+
+                                local function followPath()
+                                    if waypointIndex <= #waypoints then
+                                        local waypoint = waypoints[waypointIndex]
+                                        humanoid:MoveTo(waypoint.Position)
+                                        humanoid.MoveToFinished:Connect(function(reached)
+                                            if reached then
+                                                waypointIndex = waypointIndex + 1
+                                                followPath()
+                                            else
+                                                -- Path was blocked, recompute path
+                                                moveToClosestPlayer()
+                                            end
+                                        end)
+                                    end
+                                end
+
+                                followPath()
+                            end
+                            BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                        end
+                    end
+                end)
+            end)
+        else
+            if autoPassConnection then
+                autoPassConnection:Disconnect()
+            end
+        end
     end
 })
 
@@ -279,66 +338,63 @@ Toggle.MouseButton1Click:Connect(function()
     logMessage("Menu toggled - Now: " .. (ScreenGui.Enabled and "Visible" or "Hidden"))
 end)
 
--- Initialize OrionLib UI
-OrionLib:Init()
-logMessage("Yon Menu Initialized Successfully")
-
 --========================--
 --     FUNCTIONALITIES    --
 --========================--
 
 -- Auto Pass Bomb functionality
-local autoPassConnection
-if AutoPassEnabled then
-    autoPassConnection = RunService.Stepped:Connect(function()
-        if not AutoPassEnabled then return end
-        pcall(function()
-            if LocalPlayer.Backpack:FindFirstChild("Bomb") then
-                LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
-            end
+local function autoPassBomb()
+    if not AutoPassEnabled then return end
+    pcall(function()
+        if LocalPlayer.Backpack:FindFirstChild("Bomb") then
+            LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
+        end
 
-            local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-            if Bomb then
-                local BombEvent = Bomb:FindFirstChild("RemoteEvent")
-                local closestPlayer = getClosestPlayer()
-                if closestPlayer and closestPlayer.Character then
-                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                    if humanoid then
-                        local path = PathfindingService:CreatePath({
-                            AgentRadius = 2,
-                            AgentHeight = 5,
-                            AgentCanJump = true,
-                            AgentJumpHeight = 10,
-                            AgentMaxSlope = 45,
-                        })
-                        path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                        local waypoints = path:GetWaypoints()
-                        local waypointIndex = 1
+        local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+        if Bomb then
+            local BombEvent = Bomb:FindFirstChild("RemoteEvent")
+            local closestPlayer = getClosestPlayer()
+            if closestPlayer and closestPlayer.Character then
+                local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    local path = PathfindingService:CreatePath({
+                        AgentRadius = 2,
+                        AgentHeight = 5,
+                        AgentCanJump = true,
+                        AgentJumpHeight = 10,
+                        AgentMaxSlope = 45,
+                    })
+                    path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+                    local waypoints = path:GetWaypoints()
+                    local waypointIndex = 1
 
-                        local function followPath()
-                            if waypointIndex <= #waypoints then
-                                local waypoint = waypoints[waypointIndex]
-                                humanoid:MoveTo(waypoint.Position)
-                                humanoid.MoveToFinished:Connect(function(reached)
-                                    if reached then
-                                        waypointIndex = waypointIndex + 1
-                                        followPath()
-                                    else
-                                        -- Path was blocked, recompute path
-                                        moveToClosestPlayer()
-                                    end
-                                end)
-                            end
+                    local function followPath()
+                        if waypointIndex <= #waypoints then
+                            local waypoint = waypoints[waypointIndex]
+                            humanoid:MoveTo(waypoint.Position)
+                            humanoid.MoveToFinished:Connect(function(reached)
+                                if reached then
+                                    waypointIndex = waypointIndex + 1
+                                    followPath()
+                                else
+                                    -- Path was blocked, recompute path
+                                    moveToClosestPlayer()
+                                end
+                            end)
                         end
-
-                        followPath()
                     end
-                    BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+
+                    followPath()
                 end
+                BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
-        end)
+        end
     end)
+end
+
+if AutoPassEnabled then
+    autoPassConnection = RunService.Stepped:Connect(autoPassBomb)
 end
 
 -- Anti-Slippery functionality
@@ -382,5 +438,6 @@ if RemoveHitboxEnabled then
         removeCollisionPart(character)
     end)
 end
-
+OrionLib:Init()
+logMessage("Yon Menu Initialized Successfully")
 print("Pass The Bomb Script Loaded")
