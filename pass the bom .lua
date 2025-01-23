@@ -173,7 +173,7 @@ toggleButton.Size = UDim2.new(0, 70, 0, 70)
 toggleButton.Position = UDim2.new(0.9, -80, 0.8, -80) -- Bottom-right corner
 toggleButton.Image = "rbxassetid://6031075938" -- Replace with your desired icon asset ID
 toggleButton.BackgroundTransparency = 1
-toggleButton.Parent = game.CoreGui
+toggleButton.Parent = StarterGui -- Parent to StarterGui to ensure it stays visible
 
 local menuVisible = true
 
