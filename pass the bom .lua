@@ -71,7 +71,34 @@ local function moveToClosestPlayer()
     end
 end
 
--- Function to handle auto pass bomb
+--========================--
+--     FEATURE LOGIC      --
+--========================--
+
+-- Anti-Slippery: Apply or reset physical properties
+local function applyAntiSlippery(enabled)
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") then
+            part.CustomPhysicalProperties = enabled 
+                and PhysicalProperties.new(0.7, 0.3, 0.5) 
+                or PhysicalProperties.new(0.5, 0.3, 0.5)
+        end
+    end
+end
+
+-- Remove Hitbox: Destroy collision parts
+local function applyRemoveHitbox(enabled)
+    if not enabled then return end
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    for _, part in pairs(character:GetDescendants()) do
+        if part:IsA("BasePart") and part.Name == "CollisionPart" then
+            part:Destroy()
+        end
+    end
+end
+
+-- Auto Pass Bomb
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
@@ -107,7 +134,6 @@ local function autoPassBomb()
                                     waypointIndex = waypointIndex + 1
                                     followPath()
                                 else
-                                    -- Path was blocked, recompute path
                                     moveToClosestPlayer()
                                 end
                             end)
@@ -132,26 +158,12 @@ end
 --========================--
 LocalPlayer.CharacterAdded:Connect(function()
     if AntiSlipperyEnabled then
-        -- Apply Anti-Slippery on respawn
-        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-            end
-        end
+        applyAntiSlippery(true)
     end
-
     if RemoveHitboxEnabled then
-        -- Apply Remove Hitbox on respawn
-        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name == "CollisionPart" then
-                part:Destroy()
-            end
-        end
+        applyRemoveHitbox(true)
     end
 end)
-
 
 --========================--
 --  ORIONLIB INTERFACE    --
@@ -174,9 +186,9 @@ local UpdatesTab = Window:MakeTab({
 })
 
 UpdatesTab:AddParagraph("Changelog", [[
-- Auto reapply features on respawn.
-- Enhanced Anti-Slippery and Remove Hitbox.
-- Added persistent feature toggles.
+- Anti-Slippery and Remove Hitbox fixed for toggling.
+- Added reusable feature functions.
+- Improved flexibility for future features.
 ]])
 
 -- Console Tab
@@ -188,7 +200,6 @@ local ConsoleTab = Window:MakeTab({
 
 local logParagraph = ConsoleTab:AddParagraph("Logs", getLogString())
 
--- Function to refresh console logs
 local function refreshLogs()
     logParagraph:Set(getLogString())
 end
@@ -226,28 +237,7 @@ AutomatedTab:AddToggle({
         AntiSlipperyEnabled = value
         addLog("Anti Slippery: " .. (AntiSlipperyEnabled and "Enabled" or "Disabled"))
         refreshLogs()
-
-        if AntiSlipperyEnabled then
-            spawn(function()
-                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                while AntiSlipperyEnabled do
-                    for _, part in pairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                        end
-                    end
-                    wait(0.1)
-                end
-            end)
-        else
-            -- Reset properties when toggled off
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-                end
-            end
-        end
+        applyAntiSlippery(AntiSlipperyEnabled)
     end
 })
 
@@ -258,18 +248,9 @@ AutomatedTab:AddToggle({
         RemoveHitboxEnabled = value
         addLog("Remove Hitbox: " .. (RemoveHitboxEnabled and "Enabled" or "Disabled"))
         refreshLogs()
-
-        if RemoveHitboxEnabled then
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") and part.Name == "CollisionPart" then
-                    part:Destroy()
-                end
-            end
-        end
+        applyRemoveHitbox(RemoveHitboxEnabled)
     end
 })
-
 
 -- Initialize OrionLib UI
 OrionLib:Init()
