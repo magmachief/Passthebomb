@@ -8,7 +8,6 @@ local LocalPlayer = Players.LocalPlayer
 
 --// Variables
 local bombPassDistance = 10
-local passToClosest = true
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
@@ -129,6 +128,36 @@ local function autoPassBomb()
 end
 
 --========================--
+--  APPLY FEATURES ON RESPAWN
+--========================--
+
+local function applyFeatures()
+    -- Reapply Anti-Slippery
+    if AntiSlipperyEnabled then
+        spawn(function()
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                end
+            end
+        end)
+    end
+
+    -- Reapply Remove Hitbox
+    if RemoveHitboxEnabled then
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name == "CollisionPart" then
+                part:Destroy()
+            end
+        end
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(applyFeatures)
+
+--========================--
 --  ORIONLIB INTERFACE    --
 --========================--
 
@@ -149,10 +178,9 @@ local UpdatesTab = Window:MakeTab({
 })
 
 UpdatesTab:AddParagraph("Changelog", [[
-- Added dynamic Auto Pass Bomb feature.
-- Introduced Anti-Slippery functionality.
-- Added Remove Hitbox toggle.
-- Created a real-time console log.
+- Auto reapply features on respawn.
+- Enhanced Anti-Slippery and Remove Hitbox.
+- Added persistent feature toggles.
 ]])
 
 -- Console Tab
@@ -202,26 +230,7 @@ AutomatedTab:AddToggle({
         AntiSlipperyEnabled = value
         addLog("Anti Slippery: " .. (AntiSlipperyEnabled and "Enabled" or "Disabled"))
         refreshLogs()
-        if AntiSlipperyEnabled then
-            spawn(function()
-                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                while AntiSlipperyEnabled do
-                    for _, part in pairs(character:GetDescendants()) do
-                        if part:IsA("BasePart") then
-                            part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                        end
-                    end
-                    wait(0.1)
-                end
-            end)
-        else
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-                end
-            end
-        end
+        applyFeatures()
     end
 })
 
@@ -232,14 +241,7 @@ AutomatedTab:AddToggle({
         RemoveHitboxEnabled = value
         addLog("Remove Hitbox: " .. (RemoveHitboxEnabled and "Enabled" or "Disabled"))
         refreshLogs()
-        if RemoveHitboxEnabled then
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") and part.Name == "CollisionPart" then
-                    part:Destroy()
-                end
-            end
-        end
+        applyFeatures()
     end
 })
 
@@ -248,4 +250,4 @@ OrionLib:Init()
 addLog("Yon Menu Initialized Successfully")
 refreshLogs()
 
-print("Yon Menu Script Loaded with Auto Pass Bomb and Enhanced Features")
+print("Yon Menu Script Loaded with Enhanced Features")
