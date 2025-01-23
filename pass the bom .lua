@@ -78,18 +78,22 @@ SettingsTab:AddDropdown({
 
 -- Mobile-Friendly Toggle Button
 local toggleButton = Instance.new("ImageButton")
-toggleButton.Size = UDim2.new(0, 50, 0, 50)
-toggleButton.Position = UDim2.new(0, 20, 0.8, -60) -- Bottom-left corner for mobile
-toggleButton.Image = "rbxassetid://6031075938" -- Replace with a relevant icon
+toggleButton.Size = UDim2.new(0, 50, 0, 50) -- Size of the button
+toggleButton.Position = UDim2.new(0.05, 0, 0.9, -50) -- Adjusted position
+toggleButton.Image = "rbxassetid://6031075938" -- Replace with your desired icon asset
 toggleButton.BackgroundTransparency = 1
-toggleButton.Parent = game.CoreGui
+toggleButton.Name = "MenuToggleButton"
+
+-- Parent to the PlayerGui instead of CoreGui for visibility in all cases
+local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+toggleButton.Parent = playerGui
 
 -- Toggle functionality
 toggleButton.MouseButton1Click:Connect(function()
     UIHidden = not UIHidden
     MainWindow.Visible = not UIHidden
 
-    -- Optional: Notification for menu visibility state
+    -- Notification feedback
     OrionLib:MakeNotification({
         Name = UIHidden and "Menu Hidden" or "Menu Opened",
         Content = UIHidden and "Tap the toggle button to reopen the interface." or "Tap the toggle button to hide the interface.",
