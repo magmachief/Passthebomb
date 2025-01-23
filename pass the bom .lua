@@ -87,6 +87,9 @@ toggleButton.Parent = playerGui
 -- Debug: Print to verify the button is created and parented correctly
 print("Toggle button created and parented to PlayerGui")
 
+-- Debug: Verify the button's properties
+print("Button Properties: Size:", toggleButton.Size, " Position:", toggleButton.Position, " Image:", toggleButton.Image)
+
 -- Toggle functionality for showing/hiding the menu
 toggleButton.MouseButton1Click:Connect(function()
     UIHidden = not UIHidden
