@@ -243,24 +243,26 @@ local function createAdvancedMenu()
     mainFrame.Size = UDim2.new(0, 450, 0, 600)
     mainFrame.Position = UDim2.new(0.5, -225, 0.5, -300)
     mainFrame.BackgroundColor3 = themes[preferences.Theme].Background
+    mainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
     mainFrame.Parent = screenGui
 
-    local buttonLayout = Instance.new(preferences.ButtonLayout == "Vertical" and "UIListLayout" or "UIGridLayout")
-    if buttonLayout:IsA("UIListLayout") then
-        buttonLayout.Padding = UDim.new(0.02, 0)
-    else
-        buttonLayout.CellSize = UDim2.new(0.4, 0, 0.1, 0)
-        buttonLayout.CellPadding = UDim2.new(0.02, 0)
-    end
+    -- Layout for buttons
+    local buttonLayout = Instance.new("UIListLayout")
+    buttonLayout.Padding = UDim.new(0.02, 0)
+    buttonLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+    buttonLayout.VerticalAlignment = Enum.VerticalAlignment.Center
     buttonLayout.Parent = mainFrame
 
     local function createToggleButton(text, preferenceKey, toggleFunction)
         local button = Instance.new("TextButton")
-        button.Size = UDim2.new(0.8, 0, 0.1, 0)
+        button.Size = UDim2.new(0.8, 0, 0.12, 0)
         button.Text = text .. ": " .. (preferences[preferenceKey] and "ON" or "OFF")
         button.BackgroundColor3 = preferences[preferenceKey] and Color3.fromRGB(0, 255, 0) or Color3.fromRGB(0, 128, 255)
         button.TextColor3 = themes[preferences.Theme].TextColor
         button.Font = preferences.Font
+        button.TextScaled = true
+        button.TextWrapped = true
+        button.TextTruncate = Enum.TextTruncate.AtEnd
         button.Parent = mainFrame
 
         button.MouseButton1Click:Connect(function()
@@ -287,3 +289,6 @@ end
 
 -- Initialize the menu
 createAdvancedMenu()
+
+-- Recreate the menu if the player respawns
+LocalPlayer.CharacterAdded:Connect(createAdvancedMenu)
