@@ -179,7 +179,21 @@ local menuVisible = true
 
 toggleButton.MouseButton1Click:Connect(function()
     menuVisible = not menuVisible
-    Window:Toggle(menuVisible)
+    if menuVisible then
+        OrionLib:MakeNotification({
+            Name = "Menu Shown",
+            Content = "Yonkai Menu is now visible.",
+            Time = 3
+        })
+        Window:Show()
+    else
+        OrionLib:MakeNotification({
+            Name = "Menu Hidden",
+            Content = "Yonkai Menu is now hidden.",
+            Time = 3
+        })
+        Window:Hide()
+    end
 end)
 
 -- Finalize Orion Menu
