@@ -73,13 +73,16 @@ local toggleButton = Instance.new("ImageButton")
 toggleButton.Size = UDim2.new(0, 50, 0, 50) -- Size of the button
 toggleButton.Position = UDim2.new(0.5, -25, 0.5, -25) -- Center position
 toggleButton.AnchorPoint = Vector2.new(0.5, 0.5) -- Adjust anchor point to center
-toggleButton.Image = "rbxassetid://6031075938" -- Replace with your desired icon asset
-toggleButton.BackgroundTransparency = 0.5 -- Temporarily set to 0.5 to help identify its position
-toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Temporarily set to red for visibility
-toggleButton.BorderSizePixel = 2 -- Adding a border for visibility
-toggleButton.BorderColor3 = Color3.fromRGB(0, 0, 0) -- Border color
+toggleButton.BackgroundTransparency = 1 -- Fully transparent background
+toggleButton.Image = "" -- No image, just a circle
+toggleButton.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- Set background color to black
 toggleButton.ZIndex = 100 -- Ensure the button is on top of most UI elements
 toggleButton.Name = "MenuToggleButton"
+
+-- Make the button a circle
+local uicorner = Instance.new("UICorner")
+uicorner.CornerRadius = UDim.new(1, 0) -- Make it a perfect circle
+uicorner.Parent = toggleButton
 
 -- Parent the toggle button to PlayerGui for visibility
 local playerGui = LocalPlayer:WaitForChild("PlayerGui")
@@ -89,7 +92,7 @@ toggleButton.Parent = playerGui
 print("Toggle button created and parented to PlayerGui")
 
 -- Debug: Verify the button's properties
-print("Button Properties: Size:", toggleButton.Size, " Position:", toggleButton.Position, " Image:", toggleButton.Image)
+print("Button Properties: Size:", toggleButton.Size, " Position:", toggleButton.Position, " ZIndex:", toggleButton.ZIndex)
 
 -- Toggle functionality for showing/hiding the menu
 toggleButton.MouseButton1Click:Connect(function()
