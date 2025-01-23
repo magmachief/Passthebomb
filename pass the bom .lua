@@ -1,19 +1,11 @@
 --// Services
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Load Orion Library
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/refs/heads/main/Orion%20Lib.lua"))()
-
--- Orion Menu
-local Window = OrionLib:MakeWindow({
-    Name = "Yonkai Menu",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "YonkaiMenuConfig"
-})
+local Window = OrionLib:MakeWindow({Name = "Script Menu", HidePremium = false, SaveConfig = true, ConfigFolder = "Yonkai"})
 
 -- Default Settings and Preferences
 local preferences = {
@@ -79,16 +71,16 @@ SettingsTab:AddDropdown({
 -- Mobile-Friendly Toggle Button
 local toggleButton = Instance.new("ImageButton")
 toggleButton.Size = UDim2.new(0, 50, 0, 50) -- Size of the button
-toggleButton.Position = UDim2.new(0.05, 0, 0.9, -50) -- Adjusted position
+toggleButton.Position = UDim2.new(0, 10, 0, 10) -- Top-left corner with some padding
 toggleButton.Image = "rbxassetid://6031075938" -- Replace with your desired icon asset
 toggleButton.BackgroundTransparency = 1
 toggleButton.Name = "MenuToggleButton"
 
--- Parent to the PlayerGui instead of CoreGui for visibility in all cases
+-- Parent the toggle button to PlayerGui for visibility
 local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 toggleButton.Parent = playerGui
 
--- Toggle functionality
+-- Toggle functionality for showing/hiding the menu
 toggleButton.MouseButton1Click:Connect(function()
     UIHidden = not UIHidden
     MainWindow.Visible = not UIHidden
