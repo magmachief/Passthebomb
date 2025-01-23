@@ -77,7 +77,7 @@ toggleButton.BackgroundTransparency = 0.5 -- Temporarily set to 0.5 to help iden
 toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Temporarily set to red for visibility
 toggleButton.BorderSizePixel = 2 -- Adding a border for visibility
 toggleButton.BorderColor3 = Color3.fromRGB(0, 0, 0) -- Border color
-toggleButton.ZIndex = 10 -- Ensure the button is on top
+toggleButton.ZIndex = 100 -- Ensure the button is on top of most UI elements
 toggleButton.Name = "MenuToggleButton"
 
 -- Parent the toggle button to PlayerGui for visibility
