@@ -4,7 +4,7 @@ local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 
 -- Load Orion Library
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/refs/heads/main/Orion%20Lib.lua"))()
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib.lua"))()
 local Window = OrionLib:MakeWindow({Name = "Script Menu", HidePremium = false, SaveConfig = true, ConfigFolder = "Yonkai"})
 
 -- Default Settings and Preferences
@@ -77,8 +77,11 @@ toggleButton.BackgroundTransparency = 1
 toggleButton.Name = "MenuToggleButton"
 
 -- Parent the toggle button to PlayerGui for visibility
-local playerGui = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 toggleButton.Parent = playerGui
+
+-- Debug: Print to verify the button is created and parented correctly
+print("Toggle button created and parented to PlayerGui")
 
 -- Toggle functionality for showing/hiding the menu
 toggleButton.MouseButton1Click:Connect(function()
@@ -91,6 +94,9 @@ toggleButton.MouseButton1Click:Connect(function()
         Content = UIHidden and "Tap the toggle button to reopen the interface." or "Tap the toggle button to hide the interface.",
         Time = 5
     })
+
+    -- Debug: Print the current visibility state
+    print("Menu visibility toggled. Current state:", UIHidden and "Hidden" or "Visible")
 end)
 
 -- Finalize Orion Menu
