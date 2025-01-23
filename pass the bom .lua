@@ -2,106 +2,10 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
-local PathfindingService = game:GetService("PathfindingService")
-local StarterGui = game:GetService("StarterGui")
 local LocalPlayer = Players.LocalPlayer
 
 -- Load Orion Library
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/refs/heads/main/Orion%20Lib.lua"))()
-
--- Default Settings and Preferences
-local bombHolder = nil
-local bombPassDistance = 10
-local passToClosest = true
-
-local preferences = {
-    AntiSlipperyEnabled = false,
-    RemoveHitboxEnabled = false,
-    AutoPassEnabled = false,
-}
-
--- Function to get the closest player
-local function getClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and not player.Character:FindFirstChild("Bomb") then
-            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
-            if distance < shortestDistance then
-                shortestDistance = distance
-                closestPlayer = player
-            end
-        end
-    end
-
-    return closestPlayer
-end
-
--- Function to pass the bomb to the closest player
-local function passBomb()
-    if bombHolder == LocalPlayer and passToClosest then
-        local closestPlayer = getClosestPlayer()
-        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local distance = (closestPlayer.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
-            if distance <= bombPassDistance then
-                local bomb = LocalPlayer.Character:FindFirstChild("Bomb")
-                if bomb then
-                    local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                    local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-                    local tween = TweenService:Create(bomb, tweenInfo, {Position = targetPosition})
-                    tween:Play()
-                    tween.Completed:Connect(function()
-                        bomb.Parent = closestPlayer.Character
-                        print("Bomb passed to:", closestPlayer.Name)
-                    end)
-                end
-            else
-                print("No players within bomb pass distance. Searching for a new target...")
-            end
-        else
-            print("No valid closest player found.")
-        end
-    end
-end
-
--- Anti-Slippery functionality
-local function applyAntiSlippery(enabled)
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    if enabled then
-        while preferences.AntiSlipperyEnabled do
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                end
-            end
-            RunService.Heartbeat:Wait()
-        end
-    else
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-            end
-        end
-    end
-end
-
--- Remove Hitbox functionality
-local function removeHitbox(enabled)
-    local function cleanHitbox(character)
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") and part.Name == "CollisionPart" then
-                part:Destroy()
-            end
-        end
-    end
-
-    if enabled then
-        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        cleanHitbox(character)
-        LocalPlayer.CharacterAdded:Connect(cleanHitbox)
-    end
-end
 
 -- Orion Menu
 local Window = OrionLib:MakeWindow({
@@ -110,6 +14,16 @@ local Window = OrionLib:MakeWindow({
     SaveConfig = true,
     ConfigFolder = "YonkaiMenuConfig"
 })
+
+-- Default Settings and Preferences
+local preferences = {
+    AntiSlipperyEnabled = false,
+    RemoveHitboxEnabled = false,
+    AutoPassEnabled = false,
+}
+
+local UIHidden = false
+local MainWindow = Window -- Reference to the main Orion window
 
 -- Tabs
 local MainTab = Window:MakeTab({
@@ -124,13 +38,13 @@ local SettingsTab = Window:MakeTab({
     PremiumOnly = false
 })
 
--- Main Features
+-- Features in Main Tab
 MainTab:AddToggle({
     Name = "Anti-Slippery",
     Default = preferences.AntiSlipperyEnabled,
     Callback = function(value)
         preferences.AntiSlipperyEnabled = value
-        applyAntiSlippery(value)
+        print("Anti-Slippery:", value and "Enabled" or "Disabled")
     end
 })
 
@@ -139,7 +53,7 @@ MainTab:AddToggle({
     Default = preferences.RemoveHitboxEnabled,
     Callback = function(value)
         preferences.RemoveHitboxEnabled = value
-        removeHitbox(value)
+        print("Remove Hitbox:", value and "Enabled" or "Disabled")
     end
 })
 
@@ -148,52 +62,39 @@ MainTab:AddToggle({
     Default = preferences.AutoPassEnabled,
     Callback = function(value)
         preferences.AutoPassEnabled = value
-        if value then
-            print("Auto Pass Bomb: Enabled")
-            RunService.Stepped:Connect(passBomb)
-        else
-            print("Auto Pass Bomb: Disabled")
-        end
+        print("Auto Pass Bomb:", value and "Enabled" or "Disabled")
     end
 })
 
--- Settings
+-- Settings Tab
 SettingsTab:AddDropdown({
     Name = "Theme",
     Default = "Dark",
     Options = {"Dark", "Light", "Ocean", "Sunset"},
     Callback = function(theme)
-        print("Theme changed to:", theme)
+        print("Theme switched to:", theme)
     end
 })
 
--- Toggle Button for Menu Visibility (Mobile-Friendly)
+-- Mobile-Friendly Toggle Button
 local toggleButton = Instance.new("ImageButton")
-toggleButton.Size = UDim2.new(0, 70, 0, 70)
-toggleButton.Position = UDim2.new(0.9, -80, 0.8, -80) -- Bottom-right corner
-toggleButton.Image = "rbxassetid://6031075938" -- Replace with your desired icon asset ID
+toggleButton.Size = UDim2.new(0, 50, 0, 50)
+toggleButton.Position = UDim2.new(0, 20, 0.8, -60) -- Bottom-left corner for mobile
+toggleButton.Image = "rbxassetid://6031075938" -- Replace with a relevant icon
 toggleButton.BackgroundTransparency = 1
-toggleButton.Parent = StarterGui -- Parent to StarterGui to ensure it stays visible
+toggleButton.Parent = game.CoreGui
 
-local menuVisible = true
-
+-- Toggle functionality
 toggleButton.MouseButton1Click:Connect(function()
-    menuVisible = not menuVisible
-    if menuVisible then
-        OrionLib:MakeNotification({
-            Name = "Menu Shown",
-            Content = "Yonkai Menu is now visible.",
-            Time = 3
-        })
-        Window:Show()
-    else
-        OrionLib:MakeNotification({
-            Name = "Menu Hidden",
-            Content = "Yonkai Menu is now hidden.",
-            Time = 3
-        })
-        Window:Hide()
-    end
+    UIHidden = not UIHidden
+    MainWindow.Visible = not UIHidden
+
+    -- Optional: Notification for menu visibility state
+    OrionLib:MakeNotification({
+        Name = UIHidden and "Menu Hidden" or "Menu Opened",
+        Content = UIHidden and "Tap the toggle button to reopen the interface." or "Tap the toggle button to hide the interface.",
+        Time = 5
+    })
 end)
 
 -- Finalize Orion Menu
