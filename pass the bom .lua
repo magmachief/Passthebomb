@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
+local StarterGui = game:GetService("StarterGui")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -11,20 +12,11 @@ local bombPassDistance = 10
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
+local BombAlertEnabled = false
 local autoPassConnection = nil
 
--- Console Logs
-local logs = {}
-
--- Function to add log messages
-local function addLog(message)
-    table.insert(logs, "[" .. os.date("%X") .. "] " .. tostring(message))
-end
-
--- Function to format logs for display
-local function getLogString()
-    return table.concat(logs, "\n")
-end
+local pathfindingSpeed = 16 -- Default speed
+local jumpHeight = 10 -- Default jump height
 
 --========================--
 --    UTILITY FUNCTIONS   --
@@ -48,21 +40,40 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- Function to move closer to the nearest player
+-- Function to display bomb alert
+local function bombAlert()
+    while BombAlertEnabled do
+        local bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+        if bomb then
+            local bombPosition = bomb.Position
+            local distance = (LocalPlayer.Character.HumanoidRootPart.Position - bombPosition).magnitude
+            StarterGui:SetCore("SendNotification", {
+                Title = "Bomb Alert",
+                Text = string.format("Bomb is nearby! Distance: %.2f", distance),
+                Duration = 2,
+            })
+        end
+        wait(1) -- Check every second
+    end
+end
+
+-- Improved Pathfinding
 local function moveToClosestPlayer()
     local closestPlayer = getClosestPlayer()
     if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
         local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
         if humanoid then
             local path = PathfindingService:CreatePath({
                 AgentRadius = 2,
                 AgentHeight = 5,
                 AgentCanJump = true,
-                AgentJumpHeight = 10,
+                AgentJumpHeight = jumpHeight,
                 AgentMaxSlope = 45,
             })
-            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, closestPlayer.Character.HumanoidRootPart.Position)
+            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
             local waypoints = path:GetWaypoints()
+
             for _, waypoint in ipairs(waypoints) do
                 humanoid:MoveTo(waypoint.Position)
                 humanoid.MoveToFinished:Wait()
@@ -77,25 +88,46 @@ end
 
 -- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enabled)
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") then
-            part.CustomPhysicalProperties = enabled 
-                and PhysicalProperties.new(0.7, 0.3, 0.5) 
-                or PhysicalProperties.new(0.5, 0.3, 0.5)
+    spawn(function()
+        while enabled and AntiSlipperyEnabled do
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                end
+            end
+            wait(0.1)
         end
-    end
-end
+    end)
+     else
+            local player = Players.LocalPlayer
+            local character = player.Character or player.CharacterAdded:Wait()
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
+                end
+            end
+        end
+end)
 
 -- Remove Hitbox: Destroy collision parts
 local function applyRemoveHitbox(enabled)
     if not enabled then return end
+
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    for _, part in pairs(character:GetDescendants()) do
-        if part:IsA("BasePart") and part.Name == "CollisionPart" then
-            part:Destroy()
+    local function removeCollisionPart(character)
+        for destructionIteration = 1, 100 do
+            wait()
+            pcall(function()
+                local collisionPart = character:FindFirstChild("CollisionPart")
+                if collisionPart then
+                    collisionPart:Destroy()
+                end
+            end)
         end
     end
+    removeCollisionPart(character)
+    LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
 end
 
 -- Auto Pass Bomb
@@ -111,44 +143,9 @@ local function autoPassBomb()
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
             local closestPlayer = getClosestPlayer()
             if closestPlayer and closestPlayer.Character then
-                local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                if humanoid then
-                    local path = PathfindingService:CreatePath({
-                        AgentRadius = 2,
-                        AgentHeight = 5,
-                        AgentCanJump = true,
-                        AgentJumpHeight = 10,
-                        AgentMaxSlope = 45,
-                    })
-                    path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                    local waypoints = path:GetWaypoints()
-                    local waypointIndex = 1
-
-                    local function followPath()
-                        if waypointIndex <= #waypoints then
-                            local waypoint = waypoints[waypointIndex]
-                            humanoid:MoveTo(waypoint.Position)
-                            humanoid.MoveToFinished:Connect(function(reached)
-                                if reached then
-                                    waypointIndex = waypointIndex + 1
-                                    followPath()
-                                else
-                                    moveToClosestPlayer()
-                                end
-                            end)
-                        end
-                    end
-
-                    followPath()
-                end
-                addLog("Passing bomb to: " .. closestPlayer.Name)
+                print("Passing bomb to:", closestPlayer.Name)
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
-            else
-                addLog("No valid player to pass the bomb.")
             end
-        else
-            addLog("No bomb found in character.")
         end
     end)
 end
@@ -178,32 +175,6 @@ local Window = OrionLib:MakeWindow({
     ConfigFolder = "YonMenu_Advanced",
 })
 
--- Updates Tab
-local UpdatesTab = Window:MakeTab({
-    Name = "Updates",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-UpdatesTab:AddParagraph("Changelog", [[
-- Anti-Slippery and Remove Hitbox fixed for toggling.
-- Added reusable feature functions.
-- Improved flexibility for future features.
-]])
-
--- Console Tab
-local ConsoleTab = Window:MakeTab({
-    Name = "Console",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-local logParagraph = ConsoleTab:AddParagraph("Logs", getLogString())
-
-local function refreshLogs()
-    logParagraph:Set(getLogString())
-end
-
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
     Name = "Automated",
@@ -212,13 +183,28 @@ local AutomatedTab = Window:MakeTab({
 })
 
 AutomatedTab:AddToggle({
+    Name = "Anti Slippery",
+    Default = AntiSlipperyEnabled,
+    Callback = function(value)
+        AntiSlipperyEnabled = value
+        applyAntiSlippery(value)
+    end
+})
+
+AutomatedTab:AddToggle({
+    Name = "Remove Hitbox",
+    Default = RemoveHitboxEnabled,
+    Callback = function(value)
+        RemoveHitboxEnabled = value
+        applyRemoveHitbox(value)
+    end
+})
+
+AutomatedTab:AddToggle({
     Name = "Auto Pass Bomb",
     Default = AutoPassEnabled,
     Callback = function(value)
         AutoPassEnabled = value
-        addLog("Auto Pass Bomb: " .. (AutoPassEnabled and "Enabled" or "Disabled"))
-        refreshLogs()
-
         if AutoPassEnabled then
             autoPassConnection = RunService.Stepped:Connect(autoPassBomb)
         else
@@ -230,31 +216,36 @@ AutomatedTab:AddToggle({
     end
 })
 
-AutomatedTab:AddToggle({
-    Name = "Anti Slippery",
-    Default = AntiSlipperyEnabled,
+AutomatedTab:AddSlider({
+    Name = "Bomb Pass Distance",
+    Min = 5,
+    Max = 30,
+    Default = bombPassDistance,
+    Increment = 1,
     Callback = function(value)
-        AntiSlipperyEnabled = value
-        addLog("Anti Slippery: " .. (AntiSlipperyEnabled and "Enabled" or "Disabled"))
-        refreshLogs()
-        applyAntiSlippery(AntiSlipperyEnabled)
+        bombPassDistance = value
+    end
+})
+
+AutomatedTab:AddDropdown({
+    Name = "Pathfinding Speed",
+    Default = "16",
+    Options = {"12", "16", "20"},
+    Callback = function(value)
+        pathfindingSpeed = tonumber(value)
     end
 })
 
 AutomatedTab:AddToggle({
-    Name = "Remove Hitbox",
-    Default = RemoveHitboxEnabled,
+    Name = "Bomb Alert",
+    Default = BombAlertEnabled,
     Callback = function(value)
-        RemoveHitboxEnabled = value
-        addLog("Remove Hitbox: " .. (RemoveHitboxEnabled and "Enabled" or "Disabled"))
-        refreshLogs()
-        applyRemoveHitbox(RemoveHitboxEnabled)
+        BombAlertEnabled = value
+        if BombAlertEnabled then
+            spawn(bombAlert)
+        end
     end
 })
 
--- Initialize OrionLib UI
 OrionLib:Init()
-addLog("Yon Menu Initialized Successfully")
-refreshLogs()
-
 print("Yon Menu Script Loaded with Enhanced Features")
