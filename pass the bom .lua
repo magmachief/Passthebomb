@@ -20,7 +20,11 @@ local jumpHeight = 10 -- Default jump height
 -- UI Elements
 local bombDistanceLabel -- UI for showing bomb distance
 local bombIndicator -- UI for directional arrow
-
+local uiThemes = {
+    ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
+    ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
+    ["Red"] = { Background = Color3.new(1, 0, 0), Text = Color3.new(1, 1, 1) },
+}
 --========================--
 --    UTILITY FUNCTIONS   --
 --========================--
@@ -97,7 +101,16 @@ local function bombAlert()
         end
     end
 end
-
+local function applyUITheme(themeName)
+    local theme = uiThemes[themeName]
+    if theme then
+        bombDistanceLabel.BackgroundColor3 = theme.Background
+        bombDistanceLabel.TextColor3 = theme.Text
+        bombIndicator.BackgroundColor3 = theme.Background
+    else
+        warn("Theme not found:", themeName)
+    end
+end
 --========================--
 --     FEATURE LOGIC      --
 --========================--
@@ -276,8 +289,13 @@ AutomatedTab:AddToggle({
         end
     end
 })
-
+AutomatedTab:AddDropdown({
+    Name = "UI Theme",
+    Default = "Dark", -- Set the default theme
+    Options = { "Dark", "Light", "Red" },
+    Callback = applyUITheme,
+})
 OrionLib:Init()
 createBombAlertUI() -- Create the bomb alert UI when the script initializes
-
+applyUITheme("Dark")
 print("Yon Menu Script Loaded with Enhanced Features")
