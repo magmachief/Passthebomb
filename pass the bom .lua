@@ -14,9 +14,12 @@ local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 local BombAlertEnabled = false
 local autoPassConnection = nil
-
 local pathfindingSpeed = 16 -- Default speed
 local jumpHeight = 10 -- Default jump height
+
+-- UI Elements
+local bombDistanceLabel -- UI for showing bomb distance
+local bombIndicator -- UI for directional arrow
 
 --========================--
 --    UTILITY FUNCTIONS   --
@@ -26,7 +29,6 @@ local jumpHeight = 10 -- Default jump height
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
-
     for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and not player.Character:FindFirstChild("Bomb") then
             local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
@@ -36,55 +38,59 @@ local function getClosestPlayer()
             end
         end
     end
-
     return closestPlayer
 end
 
--- Function to display bomb alert
-local function bombAlert()
-    while BombAlertEnabled do
-        local bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-        if bomb then
-            -- Check if the bomb has a valid BasePart (e.g., Handle)
-            local bombPart = bomb:FindFirstChildWhichIsA("BasePart")
-            if bombPart then
-                local bombPosition = bombPart.Position
-                local distance = (LocalPlayer.Character.HumanoidRootPart.Position - bombPosition).magnitude
-                StarterGui:SetCore("SendNotification", {
-                    Title = "Bomb Alert",
-                    Text = string.format("Bomb is nearby! Distance: %.2f", distance),
-                    Duration = 2,
-                })
-            else
-                warn("Bomb does not have a valid BasePart for position tracking.")
-            end
-        end
-        wait(1) -- Check every second
-    end
+-- Function to create UI elements for bomb alerts
+local function createBombAlertUI()
+    local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+
+    -- Distance Label
+    bombDistanceLabel = Instance.new("TextLabel", screenGui)
+    bombDistanceLabel.Size = UDim2.new(0, 200, 0, 50)
+    bombDistanceLabel.Position = UDim2.new(0.5, -100, 0.85, 0)
+    bombDistanceLabel.BackgroundTransparency = 1
+    bombDistanceLabel.TextScaled = true
+    bombDistanceLabel.Text = "No bomb detected"
+    bombDistanceLabel.TextColor3 = Color3.new(1, 1, 1)
+
+    -- Directional Indicator
+    bombIndicator = Instance.new("ImageLabel", screenGui)
+    bombIndicator.Size = UDim2.new(0, 50, 0, 50)
+    bombIndicator.Position = UDim2.new(0.5, -25, 0.4, 0)
+    bombIndicator.BackgroundTransparency = 1
+    bombIndicator.Image = "rbxassetid://11582659479"
+    bombIndicator.Visible = false
 end
 
+-- Function to update bomb alerts
+local function bombAlert()
+    while BombAlertEnabled do
+        task.wait(0.5) -- Check every 0.5 seconds
+        local bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+        if bomb then
+            local bombPart = bomb:FindFirstChildWhichIsA("BasePart")
+            if bombPart then
+                local playerPosition = LocalPlayer.Character.HumanoidRootPart.Position
+                local bombPosition = bombPart.Position
+                local distance = (playerPosition - bombPosition).magnitude
 
--- Improved Pathfinding
-local function moveToClosestPlayer()
-    local closestPlayer = getClosestPlayer()
-    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            local path = PathfindingService:CreatePath({
-                AgentRadius = 2,
-                AgentHeight = 5,
-                AgentCanJump = true,
-                AgentJumpHeight = jumpHeight,
-                AgentMaxSlope = 45,
-            })
-            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-            local waypoints = path:GetWaypoints()
+                -- Update distance label
+                bombDistanceLabel.Text = string.format("Bomb Distance: %.2f", distance)
+                bombDistanceLabel.TextColor3 = distance < 10 and Color3.new(1, 0, 0) or (distance < 20 and Color3.new(1, 1, 0) or Color3.new(0, 1, 0))
 
-            for _, waypoint in ipairs(waypoints) do
-                humanoid:MoveTo(waypoint.Position)
-                humanoid.MoveToFinished:Wait()
+                -- Update directional indicator
+                local direction = (bombPosition - playerPosition).unit
+                local angle = math.atan2(direction.Z, direction.X)
+                bombIndicator.Rotation = math.deg(angle)
+                bombIndicator.Visible = true
+            else
+                bombDistanceLabel.Text = "Bomb not found"
+                bombIndicator.Visible = false
             end
+        else
+            bombDistanceLabel.Text = "No bomb detected"
+            bombIndicator.Visible = false
         end
     end
 end
@@ -120,23 +126,19 @@ end
 -- Remove Hitbox: Destroy collision parts
 local function applyRemoveHitbox(enabled)
     if not enabled then return end
-
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local function removeCollisionPart(character)
         for destructionIteration = 1, 100 do
             wait()
             pcall(function()
                 local collisionPart = character:FindFirstChild("CollisionPart")
-                if collisionPart then
-                    collisionPart:Destroy()
-                end
+                if collisionPart then collisionPart:Destroy() end
             end)
         end
     end
     removeCollisionPart(character)
     LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
 end
-
 
 -- Updated Auto Pass Bomb Logic
 local function autoPassBomb()
@@ -145,7 +147,6 @@ local function autoPassBomb()
         if LocalPlayer.Backpack:FindFirstChild("Bomb") then
             LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
         end
-
         local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
         if Bomb then
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
@@ -164,7 +165,6 @@ local function autoPassBomb()
                     path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
                     local waypoints = path:GetWaypoints()
                     local waypointIndex = 1
-
                     local function followPath()
                         if waypointIndex <= #waypoints then
                             local waypoint = waypoints[waypointIndex]
@@ -180,7 +180,6 @@ local function autoPassBomb()
                             end)
                         end
                     end
-
                     followPath()
                 end
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
@@ -188,30 +187,20 @@ local function autoPassBomb()
         end
     end)
 end
+
 --========================--
---  APPLY FEATURES ON RESPAWN
+--  APPLY FEATURES ON RESPAWN --
 --========================--
 LocalPlayer.CharacterAdded:Connect(function()
-    if AntiSlipperyEnabled then
-        applyAntiSlippery(true)
-    end
-    if RemoveHitboxEnabled then
-        applyRemoveHitbox(true)
-    end
+    if AntiSlipperyEnabled then applyAntiSlippery(true) end
+    if RemoveHitboxEnabled then applyRemoveHitbox(true) end
 end)
 
 --========================--
 --  ORIONLIB INTERFACE    --
 --========================--
-
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
-
-local Window = OrionLib:MakeWindow({
-    Name = "Yon Menu - Advanced",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "YonMenu_Advanced",
-})
+local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced", })
 
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
@@ -286,4 +275,6 @@ AutomatedTab:AddToggle({
 })
 
 OrionLib:Init()
+createBombAlertUI() -- Create the bomb alert UI when the script initializes
+
 print("Yon Menu Script Loaded with Enhanced Features")
