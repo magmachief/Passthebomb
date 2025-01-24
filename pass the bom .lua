@@ -26,6 +26,7 @@ local uiThemes = {
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
     ["Red"] = { Background = Color3.new(1, 0, 0), Text = Color3.new(1, 1, 1) },
 }
+
 --========================--
 --    UTILITY FUNCTIONS   --
 --========================--
@@ -48,7 +49,7 @@ end
 
 -- Function to create UI elements for bomb alerts
 local function createBombAlertUI()
-    local screenGui = Instance.new("ScreenGui", LocalPlayer.PlayerGui)
+    local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
 
     -- Distance Label
     bombDistanceLabel = Instance.new("TextLabel", screenGui)
@@ -66,6 +67,22 @@ local function createBombAlertUI()
     bombIndicator.BackgroundTransparency = 1
     bombIndicator.Image = "rbxassetid://11582659479"
     bombIndicator.Visible = false
+end
+
+-- Function to apply UI themes
+local function applyUITheme(themeName)
+    local theme = uiThemes[themeName]
+    if theme then
+        if bombDistanceLabel then
+            bombDistanceLabel.BackgroundColor3 = theme.Background
+            bombDistanceLabel.TextColor3 = theme.Text
+        end
+        if bombIndicator then
+            bombIndicator.BackgroundColor3 = theme.Background
+        end
+    else
+        warn("Theme not found:", themeName)
+    end
 end
 
 -- Function to update bomb alerts
@@ -102,16 +119,7 @@ local function bombAlert()
         end
     end
 end
-local function applyUITheme(themeName)
-    local theme = uiThemes[themeName]
-    if theme then
-        bombDistanceLabel.BackgroundColor3 = theme.Background
-        bombDistanceLabel.TextColor3 = theme.Text
-        bombIndicator.BackgroundColor3 = theme.Background
-    else
-        warn("Theme not found:", themeName)
-    end
-end
+
 --========================--
 --     FEATURE LOGIC      --
 --========================--
@@ -157,7 +165,7 @@ local function applyRemoveHitbox(enabled)
     LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
 end
 
--- Updated Auto Pass Bomb Logic
+-- Auto Pass Bomb Logic
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
@@ -181,23 +189,10 @@ local function autoPassBomb()
                     })
                     path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
                     local waypoints = path:GetWaypoints()
-                    local waypointIndex = 1
-                    local function followPath()
-                        if waypointIndex <= #waypoints then
-                            local waypoint = waypoints[waypointIndex]
-                            humanoid:MoveTo(waypoint.Position)
-                            humanoid.MoveToFinished:Connect(function(reached)
-                                if reached then
-                                    waypointIndex = waypointIndex + 1
-                                    followPath()
-                                else
-                                    -- Path was blocked, recompute path
-                                    moveToClosestPlayer()
-                                end
-                            end)
-                        end
+                    for _, waypoint in ipairs(waypoints) do
+                        humanoid:MoveTo(waypoint.Position)
+                        humanoid.MoveToFinished:Wait()
                     end
-                    followPath()
                 end
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
@@ -216,9 +211,9 @@ end)
 --========================--
 --  ORIONLIB INTERFACE    --
 --========================--
-local volumeSlider = Window:MakeTab({ Name = "Audio", Icon = "rbxassetid://4483345998", PremiumOnly = false })
+
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
-local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced", })
+local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
@@ -280,16 +275,7 @@ AutomatedTab:AddDropdown({
         pathfindingSpeed = tonumber(value)
     end
 })
-volumeSlider:AddSlider({
-    Name = "Game Volume",
-    Min = 0,
-    Max = 100,
-    Default = 100,
-    Increment = 1,
-    Callback = function(value)
-        SoundService.AmbientVolume = value / 100 -- Adjust global volume
-    end,
-})
+
 AutomatedTab:AddToggle({
     Name = "Bomb Alert",
     Default = BombAlertEnabled,
@@ -300,13 +286,32 @@ AutomatedTab:AddToggle({
         end
     end
 })
+
 AutomatedTab:AddDropdown({
     Name = "UI Theme",
-    Default = "Dark", -- Set the default theme
+    Default = "Dark",
     Options = { "Dark", "Light", "Red" },
     Callback = applyUITheme,
 })
+
+local AudioTab = Window:MakeTab({
+    Name = "Audio",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+AudioTab:AddSlider({
+    Name = "Game Volume",
+    Min = 0,
+    Max = 100,
+    Default = 100,
+    Increment = 1,
+    Callback = function(value)
+        SoundService.AmbientVolume = value / 100
+    end
+})
+
 OrionLib:Init()
-createBombAlertUI() -- Create the bomb alert UI when the script initializes
+createBombAlertUI()
 applyUITheme("Dark")
 print("Yon Menu Script Loaded with Enhanced Features")
