@@ -88,27 +88,27 @@ end
 
 -- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enabled)
-    spawn(function()
-        while enabled and AntiSlipperyEnabled do
-            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+    if enabled then
+        spawn(function()
+            while enabled and AntiSlipperyEnabled do
+                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                    end
                 end
+                wait(0.1)
             end
-            wait(0.1)
-        end
-    end)
-     else
-            local player = Players.LocalPlayer
-            local character = player.Character or player.CharacterAdded:Wait()
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-                end
+        end)
+    else
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        for _, part in pairs(character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
             end
         end
-end)
+    end
+end
 
 -- Remove Hitbox: Destroy collision parts
 local function applyRemoveHitbox(enabled)
