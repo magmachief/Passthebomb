@@ -80,9 +80,12 @@ local function bombAlert()
                 bombDistanceLabel.TextColor3 = distance < 10 and Color3.new(1, 0, 0) or (distance < 20 and Color3.new(1, 1, 0) or Color3.new(0, 1, 0))
 
                 -- Update directional indicator
-                local direction = (bombPosition - playerPosition).unit
-                local angle = math.atan2(direction.Z, direction.X)
-                bombIndicator.Rotation = math.deg(angle)
+                local screenCenter = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
+                local bombScreenPosition, onScreen = workspace.CurrentCamera:WorldToViewportPoint(bombPosition)
+                local direction = (Vector2.new(bombScreenPosition.X, bombScreenPosition.Y) - screenCenter).unit
+                local angle = math.atan2(direction.Y, direction.X)
+                bombIndicator.Rotation = math.deg(angle) + 90 -- Adjust the rotation to point correctly
+                bombIndicator.Position = UDim2.new(0.5, direction.X * 100, 0.4, direction.Y * 100) -- Adjust the position based on direction
                 bombIndicator.Visible = true
             else
                 bombDistanceLabel.Text = "Bomb not found"
