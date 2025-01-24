@@ -45,17 +45,24 @@ local function bombAlert()
     while BombAlertEnabled do
         local bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
         if bomb then
-            local bombPosition = bomb.Position
-            local distance = (LocalPlayer.Character.HumanoidRootPart.Position - bombPosition).magnitude
-            StarterGui:SetCore("SendNotification", {
-                Title = "Bomb Alert",
-                Text = string.format("Bomb is nearby! Distance: %.2f", distance),
-                Duration = 2,
-            })
+            -- Check if the bomb has a valid BasePart (e.g., Handle)
+            local bombPart = bomb:FindFirstChildWhichIsA("BasePart")
+            if bombPart then
+                local bombPosition = bombPart.Position
+                local distance = (LocalPlayer.Character.HumanoidRootPart.Position - bombPosition).magnitude
+                StarterGui:SetCore("SendNotification", {
+                    Title = "Bomb Alert",
+                    Text = string.format("Bomb is nearby! Distance: %.2f", distance),
+                    Duration = 2,
+                })
+            else
+                warn("Bomb does not have a valid BasePart for position tracking.")
+            end
         end
         wait(1) -- Check every second
     end
 end
+
 
 -- Improved Pathfinding
 local function moveToClosestPlayer()
@@ -130,7 +137,8 @@ local function applyRemoveHitbox(enabled)
     LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
 end
 
--- Auto Pass Bomb
+
+-- Updated Auto Pass Bomb Logic
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
@@ -143,13 +151,43 @@ local function autoPassBomb()
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
             local closestPlayer = getClosestPlayer()
             if closestPlayer and closestPlayer.Character then
-                print("Passing bomb to:", closestPlayer.Name)
+                local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                if humanoid then
+                    local path = PathfindingService:CreatePath({
+                        AgentRadius = 2,
+                        AgentHeight = 5,
+                        AgentCanJump = true,
+                        AgentJumpHeight = 10,
+                        AgentMaxSlope = 45,
+                    })
+                    path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+                    local waypoints = path:GetWaypoints()
+                    local waypointIndex = 1
+
+                    local function followPath()
+                        if waypointIndex <= #waypoints then
+                            local waypoint = waypoints[waypointIndex]
+                            humanoid:MoveTo(waypoint.Position)
+                            humanoid.MoveToFinished:Connect(function(reached)
+                                if reached then
+                                    waypointIndex = waypointIndex + 1
+                                    followPath()
+                                else
+                                    -- Path was blocked, recompute path
+                                    moveToClosestPlayer()
+                                end
+                            end)
+                        end
+                    end
+
+                    followPath()
+                end
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
         end
     end)
 end
-
 --========================--
 --  APPLY FEATURES ON RESPAWN
 --========================--
