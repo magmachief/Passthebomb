@@ -1,4 +1,5 @@
 --// Services
+local SoundService = game:GetService("SoundService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -215,6 +216,7 @@ end)
 --========================--
 --  ORIONLIB INTERFACE    --
 --========================--
+local volumeSlider = Window:MakeTab({ Name = "Audio", Icon = "rbxassetid://4483345998", PremiumOnly = false })
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced", })
 
@@ -278,7 +280,16 @@ AutomatedTab:AddDropdown({
         pathfindingSpeed = tonumber(value)
     end
 })
-
+volumeSlider:AddSlider({
+    Name = "Game Volume",
+    Min = 0,
+    Max = 100,
+    Default = 100,
+    Increment = 1,
+    Callback = function(value)
+        SoundService.AmbientVolume = value / 100 -- Adjust global volume
+    end,
+})
 AutomatedTab:AddToggle({
     Name = "Bomb Alert",
     Default = BombAlertEnabled,
