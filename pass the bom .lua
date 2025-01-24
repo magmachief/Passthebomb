@@ -17,25 +17,7 @@ local autoPassConnection = nil
 
 local pathfindingSpeed = 16 -- Default speed
 local jumpHeight = 10 -- Default jump height
---========================--
---  ORIONLIB INTERFACE    --
---========================--
 
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
-
-local Window = OrionLib:MakeWindow({
-    Name = "Yon Menu - Advanced",
-    HidePremium = false,
-    SaveConfig = true,
-    ConfigFolder = "YonMenu_Advanced",
-})
-
--- Automated Tab
-local AutomatedTab = Window:MakeTab({
-    Name = "Automated",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
 --========================--
 --    UTILITY FUNCTIONS   --
 --========================--
@@ -179,6 +161,26 @@ LocalPlayer.CharacterAdded:Connect(function()
         applyRemoveHitbox(true)
     end
 end)
+
+--========================--
+--  ORIONLIB INTERFACE    --
+--========================--
+
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
+
+local Window = OrionLib:MakeWindow({
+    Name = "Yon Menu - Advanced",
+    HidePremium = false,
+    SaveConfig = true,
+    ConfigFolder = "YonMenu_Advanced",
+})
+
+-- Automated Tab
+local AutomatedTab = Window:MakeTab({
+    Name = "Automated",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
 
 AutomatedTab:AddToggle({
     Name = "Anti Slippery",
