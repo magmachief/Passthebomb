@@ -45,6 +45,25 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
+-- Function to create a SoundGroup for managing volume
+local function createSoundGroup()
+    local soundGroup = Instance.new("SoundGroup", SoundService)
+    soundGroup.Name = "GlobalSoundGroup"
+    -- Assign all sounds to the SoundGroup
+    for _, sound in pairs(SoundService:GetDescendants()) do
+        if sound:IsA("Sound") then
+            sound.SoundGroup = soundGroup
+        end
+    end
+    return soundGroup
+end
+
+-- Function to set global game volume
+local function setGameVolume(volume)
+    local soundGroup = SoundService:FindFirstChild("GlobalSoundGroup") or createSoundGroup()
+    soundGroup.Volume = math.clamp(volume, 0, 1)
+end
+
 -- Function to create UI elements for bomb alerts
 local function createBombAlertUI()
     local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
@@ -309,7 +328,7 @@ AudioTab:AddSlider({
     Default = 100,
     Increment = 1,
     Callback = function(value)
-        SoundService.AmbientVolume = value / 100
+        setGameVolume(value / 100) -- Convert percentage to decimal
     end
 })
 
