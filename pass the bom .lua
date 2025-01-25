@@ -16,11 +16,9 @@ local RemoveHitboxEnabled = false
 local BombAlertEnabled = false
 local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
-local jumpHeight = 10 -- Default jump height
-
--- UI Elements
 local bombDistanceLabel -- UI for showing bomb distance
 local bombIndicator -- UI for directional arrow
+local lastTargetPosition = nil -- Cached position for pathfinding
 local uiThemes = {
     ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
@@ -87,8 +85,9 @@ end
 
 -- Function to update bomb alerts
 local function bombAlert()
+    local lastBombDistance = nil
     while BombAlertEnabled do
-        task.wait(0.5) -- Check every 0.5 seconds
+        task.wait(0.5) -- Reduced frequency
         local bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
         if bomb then
             local bombPart = bomb:FindFirstChildWhichIsA("BasePart")
@@ -97,21 +96,20 @@ local function bombAlert()
                 local bombPosition = bombPart.Position
                 local distance = (playerPosition - bombPosition).magnitude
 
-                -- Update distance label
-                bombDistanceLabel.Text = string.format("Bomb Distance: %.2f", distance)
-                bombDistanceLabel.TextColor3 = distance < 10 and Color3.new(1, 0, 0) or (distance < 20 and Color3.new(1, 1, 0) or Color3.new(0, 1, 0))
+                -- Update distance label only if the distance has changed
+                if lastBombDistance ~= distance then
+                    bombDistanceLabel.Text = string.format("Bomb Distance: %.2f", distance)
+                    bombDistanceLabel.TextColor3 = distance < 10 and Color3.new(1, 0, 0) or (distance < 20 and Color3.new(1, 1, 0) or Color3.new(0, 1, 0))
+                    lastBombDistance = distance
+                end
 
                 -- Update directional indicator
                 local screenCenter = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
-                local bombScreenPosition, onScreen = workspace.CurrentCamera:WorldToViewportPoint(bombPosition)
+                local bombScreenPosition = workspace.CurrentCamera:WorldToViewportPoint(bombPosition)
                 local direction = (Vector2.new(bombScreenPosition.X, bombScreenPosition.Y) - screenCenter).unit
-                local angle = math.atan2(direction.Y, direction.X)
-                bombIndicator.Rotation = math.deg(angle) + 90 -- Adjust the rotation to point correctly
-                bombIndicator.Position = UDim2.new(0.5, direction.X * 100, 0.4, direction.Y * 100) -- Adjust the position based on direction
+                bombIndicator.Rotation = math.deg(math.atan2(direction.Y, direction.X)) + 90
+                bombIndicator.Position = UDim2.new(0.5, direction.X * 100, 0.4, direction.Y * 100)
                 bombIndicator.Visible = true
-            else
-                bombDistanceLabel.Text = "Bomb not found"
-                bombIndicator.Visible = false
             end
         else
             bombDistanceLabel.Text = "No bomb detected"
@@ -128,7 +126,7 @@ end
 local function applyAntiSlippery(enabled)
     if enabled then
         spawn(function()
-            while enabled and AntiSlipperyEnabled do
+            while AntiSlipperyEnabled do
                 local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
                 for _, part in pairs(character:GetDescendants()) do
                     if part:IsA("BasePart") then
@@ -172,28 +170,32 @@ local function autoPassBomb()
         if LocalPlayer.Backpack:FindFirstChild("Bomb") then
             LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
         end
+
         local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
         if Bomb then
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
             local closestPlayer = getClosestPlayer()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                if humanoid then
-                    local path = PathfindingService:CreatePath({
-                        AgentRadius = 2,
-                        AgentHeight = 5,
-                        AgentCanJump = true,
-                        AgentJumpHeight = 10,
-                        AgentMaxSlope = 45,
-                    })
-                    path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                    local waypoints = path:GetWaypoints()
-                    for _, waypoint in ipairs(waypoints) do
-                        humanoid:MoveTo(waypoint.Position)
-                        humanoid.MoveToFinished:Wait()
+                if not lastTargetPosition or (lastTargetPosition - targetPosition).magnitude > 5 then
+                    lastTargetPosition = targetPosition
+                    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                    if humanoid then
+                        local path = PathfindingService:CreatePath({
+                            AgentRadius = 2,
+                            AgentHeight = 5,
+                            AgentCanJump = true,
+                            AgentJumpHeight = 10,
+                            AgentMaxSlope = 45,
+                        })
+                        path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+                        for _, waypoint in ipairs(path:GetWaypoints()) do
+                            humanoid:MoveTo(waypoint.Position)
+                            humanoid.MoveToFinished:Wait()
+                        end
                     end
                 end
+
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
         end
