@@ -24,6 +24,8 @@ local function setJumpPower(value)
     if humanoid then
         humanoid.JumpPower = value
         print("Jump Power set to:", value)
+    else
+        print("Humanoid not found!")
     end
 end
 
@@ -32,6 +34,8 @@ local function applySpikePower(force)
     if ball and ball:IsA("BasePart") then
         ball.Velocity = Vector3.new(0, force, 0)
         print("Spike Power applied:", force)
+    else
+        print("Volleyball not found!")
     end
 end
 
@@ -40,6 +44,8 @@ local function extendHitbox(multiplier)
     if ball and ball:IsA("BasePart") then
         ball.Size = ball.Size * multiplier
         print("Hitbox extended by multiplier:", multiplier)
+    else
+        print("Volleyball not found!")
     end
 end
 
@@ -48,6 +54,8 @@ local function stopMatch()
     if matchScript then
         matchScript.Disabled = true
         print("Match stopped.")
+    else
+        print("MatchScript not found!")
     end
 end
 
@@ -56,6 +64,8 @@ local function autoServe()
     if ball and ball:IsA("BasePart") then
         ball.Velocity = Vector3.new(0, 100, 50)
         print("Auto serve executed.")
+    else
+        print("Volleyball not found!")
     end
 end
 
@@ -65,7 +75,11 @@ local function autoSpike()
         local distance = (ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
         if distance < 10 then
             applySpikePower(SpikePower)
+        else
+            print("Ball is too far for a spike.")
         end
+    else
+        print("Ball not found or not passed yet.")
     end
 end
 
@@ -77,7 +91,11 @@ local function autoBlock()
             -- Set character's orientation to face the ball
             LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.lookAt(LocalPlayer.Character.HumanoidRootPart.Position, ball.Position)
             print("Auto block executed.")
+        else
+            print("Ball is too far to block.")
         end
+    else
+        print("Volleyball not found!")
     end
 end
 
@@ -90,7 +108,11 @@ local function autoPass()
             ball.Velocity = Vector3.new(10, 10, 10)
             ballPassed = true
             print("Auto pass executed.")
+        else
+            print("Ball is too far to pass.")
         end
+    else
+        print("Volleyball not found!")
     end
 end
 
@@ -102,7 +124,11 @@ local function approachBall()
             -- Move towards the ball
             LocalPlayer.Character.Humanoid:MoveTo(ball.Position)
             print("Approaching ball.")
+        else
+            print("Already close to the ball.")
         end
+    else
+        print("Volleyball not found!")
     end
 end
 
