@@ -7,9 +7,15 @@ local Workspace = game:GetService("Workspace")
 local LocalPlayer = Players.LocalPlayer
 local JumpPowerEnabled = false
 local HitboxExtenderEnabled = false
+local AutoSpikeEnabled = false
+local AutoBlockEnabled = false
+local AutoPassEnabled = false
 local JumpPower = 100
 local SpikePower = 200
 local HitboxMultiplier = 2
+
+-- Check if the ball has been passed
+local ballPassed = false
 
 --// Functions
 local function setJumpPower(value)
@@ -50,6 +56,53 @@ local function autoServe()
     if ball and ball:IsA("BasePart") then
         ball.Velocity = Vector3.new(0, 100, 50)
         print("Auto serve executed.")
+    end
+end
+
+local function autoSpike()
+    local ball = Workspace:FindFirstChild("Volleyball")
+    if ball and ball:IsA("BasePart") and ballPassed then
+        local distance = (ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+        if distance < 10 then
+            applySpikePower(SpikePower)
+        end
+    end
+end
+
+local function autoBlock()
+    local ball = Workspace:FindFirstChild("Volleyball")
+    if ball and ball:IsA("BasePart") then
+        local distance = (ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+        if distance < 10 then
+            -- Set character's orientation to face the ball
+            LocalPlayer.Character.HumanoidRootPart.CFrame = CFrame.lookAt(LocalPlayer.Character.HumanoidRootPart.Position, ball.Position)
+            print("Auto block executed.")
+        end
+    end
+end
+
+local function autoPass()
+    local ball = Workspace:FindFirstChild("Volleyball")
+    if ball and ball:IsA("BasePart") then
+        local distance = (ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+        if distance < 10 then
+            -- Apply slight velocity to the ball to simulate a pass
+            ball.Velocity = Vector3.new(10, 10, 10)
+            ballPassed = true
+            print("Auto pass executed.")
+        end
+    end
+end
+
+local function approachBall()
+    local ball = Workspace:FindFirstChild("Volleyball")
+    if ball and ball:IsA("BasePart") then
+        local distance = (ball.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+        if distance > 10 then
+            -- Move towards the ball
+            LocalPlayer.Character.Humanoid:MoveTo(ball.Position)
+            print("Approaching ball.")
+        end
     end
 end
 
@@ -115,4 +168,44 @@ MainTab:AddButton({
     end
 })
 
+MainTab:AddToggle({
+    Name = "Enable Auto Spike",
+    Default = AutoSpikeEnabled,
+    Callback = function(value)
+        AutoSpikeEnabled = value
+    end
+})
+
+MainTab:AddToggle({
+    Name = "Enable Auto Block",
+    Default = AutoBlockEnabled,
+    Callback = function(value)
+        AutoBlockEnabled = value
+    end
+})
+
+MainTab:AddToggle({
+    Name = "Enable Auto Pass",
+    Default = AutoPassEnabled,
+    Callback = function(value)
+        AutoPassEnabled = value
+    end
+})
+
 OrionLib:Init()
+
+-- Auto Spike, Block, Pass, and Approach logic
+RunService.Stepped:Connect(function()
+    if AutoSpikeEnabled then
+        autoSpike()
+    end
+    if AutoBlockEnabled then
+        autoBlock()
+    end
+    if AutoPassEnabled then
+        autoPass()
+    end
+    if AutoSpikeEnabled or AutoBlockEnabled or AutoPassEnabled then
+        approachBall()
+    end
+end)
