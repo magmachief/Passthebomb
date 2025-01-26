@@ -1,1 +1,2 @@
 loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Passthebomb/refs/heads/main/pass%20the%20bom%20.lua"))()
+loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Passthebomb/refs/heads/main/Haikyuu%20legends.lua"))()
