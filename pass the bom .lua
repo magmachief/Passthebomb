@@ -1,8 +1,6 @@
 --// Services
-local SoundService = game:GetService("SoundService")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
 local StarterGui = game:GetService("StarterGui")
 
@@ -13,11 +11,8 @@ local bombPassDistance = 10
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
-local BombAlertEnabled = false
 local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
-local bombDistanceLabel -- UI for showing bomb distance
-local bombIndicator -- UI for directional arrow
 local lastTargetPosition = nil -- Cached position for pathfinding
 local uiThemes = {
     ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
@@ -44,102 +39,6 @@ local function getClosestPlayer()
     end
     return closestPlayer
 end
-
--- Function to create a SoundGroup for managing volume
-local function createSoundGroup()
-    local soundGroup = Instance.new("SoundGroup", SoundService)
-    soundGroup.Name = "GlobalSoundGroup"
-    -- Assign all sounds to the SoundGroup
-    for _, sound in pairs(SoundService:GetDescendants()) do
-        if sound:IsA("Sound") then
-            sound.SoundGroup = soundGroup
-        end
-    end
-    return soundGroup
-end
-
--- Function to set global game volume
-local function setGameVolume(volume)
-    local soundGroup = SoundService:FindFirstChild("GlobalSoundGroup") or createSoundGroup()
-    soundGroup.Volume = math.clamp(volume, 0, 1)
-end
-
--- Function to create UI elements for bomb alerts
-local function createBombAlertUI()
-    local screenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
-
-    -- Distance Label
-    bombDistanceLabel = Instance.new("TextLabel", screenGui)
-    bombDistanceLabel.Size = UDim2.new(0, 200, 0, 50)
-    bombDistanceLabel.Position = UDim2.new(0.5, -100, 0.85, 0)
-    bombDistanceLabel.BackgroundTransparency = 1
-    bombDistanceLabel.TextScaled = true
-    bombDistanceLabel.Text = "No bomb detected"
-    bombDistanceLabel.TextColor3 = Color3.new(1, 1, 1)
-
-    -- Directional Indicator
-    bombIndicator = Instance.new("ImageLabel", screenGui)
-    bombIndicator.Size = UDim2.new(0, 50, 0, 50)
-    bombIndicator.Position = UDim2.new(0.5, -25, 0.4, 0)
-    bombIndicator.BackgroundTransparency = 1
-    bombIndicator.Image = "rbxassetid://11582659479"
-    bombIndicator.Visible = false
-end
-
--- Function to apply UI themes
-local function applyUITheme(themeName)
-    local theme = uiThemes[themeName]
-    if theme then
-        if bombDistanceLabel then
-            bombDistanceLabel.BackgroundColor3 = theme.Background
-            bombDistanceLabel.TextColor3 = theme.Text
-        end
-        if bombIndicator then
-            bombIndicator.BackgroundColor3 = theme.Background
-        end
-    else
-        warn("Theme not found:", themeName)
-    end
-end
-
--- Function to update bomb alerts
-local function bombAlert()
-    local lastBombDistance = nil
-    while BombAlertEnabled do
-        task.wait(0.5) -- Reduced frequency
-        local bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-        if bomb then
-            local bombPart = bomb:FindFirstChildWhichIsA("BasePart")
-            if bombPart then
-                local playerPosition = LocalPlayer.Character.HumanoidRootPart.Position
-                local bombPosition = bombPart.Position
-                local distance = (playerPosition - bombPosition).magnitude
-
-                -- Update distance label only if the distance has changed
-                if lastBombDistance ~= distance then
-                    bombDistanceLabel.Text = string.format("Bomb Distance: %.2f", distance)
-                    bombDistanceLabel.TextColor3 = distance < 10 and Color3.new(1, 0, 0) or (distance < 20 and Color3.new(1, 1, 0) or Color3.new(0, 1, 0))
-                    lastBombDistance = distance
-                end
-
-                -- Update directional indicator
-                local screenCenter = Vector2.new(workspace.CurrentCamera.ViewportSize.X / 2, workspace.CurrentCamera.ViewportSize.Y / 2)
-                local bombScreenPosition = workspace.CurrentCamera:WorldToViewportPoint(bombPosition)
-                local direction = (Vector2.new(bombScreenPosition.X, bombScreenPosition.Y) - screenCenter).unit
-                bombIndicator.Rotation = math.deg(math.atan2(direction.Y, direction.X)) + 90
-                bombIndicator.Position = UDim2.new(0.5, direction.X * 100, 0.4, direction.Y * 100)
-                bombIndicator.Visible = true
-            end
-        else
-            bombDistanceLabel.Text = "No bomb detected"
-            bombIndicator.Visible = false
-        end
-    end
-end
-
---========================--
---     FEATURE LOGIC      --
---========================--
 
 -- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enabled)
@@ -297,42 +196,19 @@ AutomatedTab:AddDropdown({
     end
 })
 
-AutomatedTab:AddToggle({
-    Name = "Bomb Alert",
-    Default = BombAlertEnabled,
-    Callback = function(value)
-        BombAlertEnabled = value
-        if BombAlertEnabled then
-            spawn(bombAlert)
-        end
-    end
-})
-
 AutomatedTab:AddDropdown({
     Name = "UI Theme",
     Default = "Dark",
     Options = { "Dark", "Light", "Red" },
-    Callback = applyUITheme,
-})
-
-local AudioTab = Window:MakeTab({
-    Name = "Audio",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-AudioTab:AddSlider({
-    Name = "Game Volume",
-    Min = 0,
-    Max = 100,
-    Default = 100,
-    Increment = 1,
-    Callback = function(value)
-        setGameVolume(value / 100) -- Convert percentage to decimal
+    Callback = function(themeName)
+        local theme = uiThemes[themeName]
+        if theme then
+            -- Apply theme to UI elements here if needed
+        else
+            warn("Theme not found:", themeName)
+        end
     end
 })
 
 OrionLib:Init()
-createBombAlertUI()
-applyUITheme("Dark")
-print("Yon Menu Script Loaded with Enhanced Features")
+print("Yon Menu Script Loaded with Adjustments")
