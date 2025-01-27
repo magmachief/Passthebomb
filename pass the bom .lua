@@ -80,32 +80,24 @@ local function applyRemoveHitbox(enabled)
     removeCollisionPart(character)
     LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
 end
-
--- Function to play hand movement animation during bomb passing
-local function playHandPassAnimation(targetPosition)
+-- Function to move or rotate the character to look more natural during bomb passing
+local function moveCharacterTowardTarget(targetPosition)
     local character = LocalPlayer.Character
     if not character then return end
 
-    local humanoid = character:FindFirstChild("Humanoid")
-    if not humanoid then return end
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
 
-    -- Create a simple animation for hand movement
-    local animation = Instance.new("Animation")
-    animation.AnimationId = "rbxassetid://YOUR_ANIMATION_ID" -- Replace with actual Animation ID
-    local animator = humanoid:FindFirstChild("Animator") or humanoid:WaitForChild("Animator")
-    local loadedAnimation = animator:LoadAnimation(animation)
+    -- Calculate direction to target
+    local direction = (targetPosition - humanoidRootPart.Position).unit
 
-    -- Play the animation
-    loadedAnimation:Play()
-
-    -- Stop the animation after a short delay
-    task.spawn(function()
-        wait(0.5) -- Adjust duration as needed
-        loadedAnimation:Stop()
-    end)
+    -- Slightly move or rotate the character to seem active
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame
+        * CFrame.Angles(0, math.rad(20), 0) -- Add a slight spin
+        * CFrame.new(direction.X * 0.5, 0, direction.Z * 0.5) -- Move slightly toward the target
 end
 
--- Modify the autoPassBomb function to include animation
+-- Modify the autoPassBomb function to include character movement
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
@@ -138,9 +130,10 @@ local function autoPassBomb()
                     end
                 end
 
-                -- Play hand movement animation
-                playHandPassAnimation(targetPosition)
+                -- Move or rotate character slightly toward the target
+                moveCharacterTowardTarget(targetPosition)
 
+                -- Fire the remote event to pass the bomb
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
         end
