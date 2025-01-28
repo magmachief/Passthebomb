@@ -14,6 +14,7 @@ local RemoveHitboxEnabled = false
 local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
 local lastTargetPosition = nil -- Cached position for pathfinding
+local maxPassDistance = 20 -- Maximum distance allowed for a bomb pass
 local uiThemes = {
     ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
@@ -37,7 +38,54 @@ local function getClosestPlayer()
             end
         end
     end
-    return closestPlayer
+    return closestPlayer, shortestDistance
+end
+
+-- Function to move the character to the closest player and rotate
+local function moveToClosestPlayer()
+    local closestPlayer = getClosestPlayer()
+    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
+        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            local path = PathfindingService:CreatePath({
+                AgentRadius = 2,
+                AgentHeight = 5,
+                AgentCanJump = true,
+                AgentJumpHeight = 10,
+                AgentMaxSlope = 45,
+            })
+            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
+            local waypoints = path:GetWaypoints()
+            local waypointIndex = 1
+
+            local function followPath()
+                if waypointIndex <= #waypoints then
+                    local waypoint = waypoints[waypointIndex]
+                    local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                    if humanoidRootPart then
+                        -- Rotate toward target
+                        local direction = (waypoint.Position - humanoidRootPart.Position).unit
+                        local lookCFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + direction)
+                        humanoidRootPart.CFrame = lookCFrame * CFrame.Angles(0, math.rad(10), 0) -- Add spin
+                    end
+
+                    humanoid:MoveTo(waypoint.Position)
+                    humanoid.MoveToFinished:Connect(function(reached)
+                        if reached then
+                            waypointIndex = waypointIndex + 1
+                            followPath()
+                        else
+                            -- Path was blocked, recompute path
+                            moveToClosestPlayer()
+                        end
+                    end)
+                end
+            end
+
+            followPath()
+        end
+    end
 end
 
 -- Anti-Slippery: Apply or reset physical properties
@@ -80,24 +128,8 @@ local function applyRemoveHitbox(enabled)
     removeCollisionPart(character)
     LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
 end
--- Function to move or rotate the character to look more natural during bomb passing
-local function moveCharacterTowardTarget(targetPosition)
-    local character = LocalPlayer.Character
-    if not character then return end
 
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-
-    -- Calculate direction to target
-    local direction = (targetPosition - humanoidRootPart.Position).unit
-
-    -- Slightly move or rotate the character to seem active
-    humanoidRootPart.CFrame = humanoidRootPart.CFrame
-        * CFrame.Angles(0, math.rad(20), 0) -- Add a slight spin
-        * CFrame.new(direction.X * 0.5, 0, direction.Z * 0.5) -- Move slightly toward the target
-end
-
--- Modify the autoPassBomb function to include character movement
+-- Auto Pass Bomb Logic
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
@@ -108,8 +140,8 @@ local function autoPassBomb()
         local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
         if Bomb then
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
-            local closestPlayer = getClosestPlayer()
-            if closestPlayer and closestPlayer.Character then
+            local closestPlayer, distance = getClosestPlayer()
+            if closestPlayer and closestPlayer.Character and distance <= maxPassDistance then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                 if not lastTargetPosition or (lastTargetPosition - targetPosition).magnitude > 5 then
                     lastTargetPosition = targetPosition
@@ -131,7 +163,7 @@ local function autoPassBomb()
                 end
 
                 -- Move or rotate character slightly toward the target
-                moveCharacterTowardTarget(targetPosition)
+                moveToClosestPlayer()
 
                 -- Fire the remote event to pass the bomb
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
