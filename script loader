@@ -3,3 +3,6 @@ loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Passthebom
 
 
 loadstring(game:HttpGet("https://pastebin.com/raw/MmAAULw9"))()
+
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Milan08Studio/ChairWare/main/main.lua"))()
