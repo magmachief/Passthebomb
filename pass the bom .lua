@@ -39,6 +39,24 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
+-- Function to rotate the character to look more natural during bomb passing
+local function rotateCharacterTowardsTarget(targetPosition)
+    local character = LocalPlayer.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    -- Calculate direction to target
+    local direction = (targetPosition - humanoidRootPart.Position).unit
+
+    -- Slightly rotate the character to seem active
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0)
+
+    -- Add a slight delay to slow down rotation
+    wait(0.2) -- Adjust delay as needed
+end
+
 -- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enabled)
     if enabled then
@@ -95,6 +113,9 @@ local function autoPassBomb()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                 if (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= bombPassDistance then
+                    -- Rotate character slightly toward the target
+                    rotateCharacterTowardsTarget(targetPosition)
+
                     -- Fire the remote event to pass the bomb
                     BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
                 end
