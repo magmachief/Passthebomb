@@ -171,7 +171,16 @@ end
 local function hookBombTimer()
     local function tryToFindBomb()
         local Bomb = LocalPlayer.Backpack:FindFirstChild("Bomb")
-        return Bomb
+        if Bomb then
+            return Bomb
+        else
+            for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+                if item.Name:lower():find("bomb") then
+                    return item
+                end
+            end
+        end
+        return nil
     end
 
     local Bomb = tryToFindBomb()
@@ -206,8 +215,23 @@ end)
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
--- Make the OrionLib window draggable
-makeDraggable(Window.Container)
+-- Create a draggable icon
+local icon = Instance.new("ImageLabel")
+icon.Name = "DragIcon"
+icon.Size = UDim2.new(0, 50, 0, 50)
+icon.Position = UDim2.new(0, 10, 0, 10)
+icon.Image = "rbxassetid://4483345998" -- Replace with your icon asset ID
+icon.BackgroundTransparency = 1
+icon.Parent = game:GetService("CoreGui")
+
+-- Make the icon draggable
+makeDraggable(icon)
+
+icon.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        Window:Toggle()
+    end
+end)
 
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
