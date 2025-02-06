@@ -41,54 +41,6 @@ local function getClosestPlayer()
     return closestPlayer, shortestDistance
 end
 
--- Function to move the character to the closest player and rotate
-local function moveToClosestPlayer()
-    local closestPlayer = getClosestPlayer()
-    if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            local path = PathfindingService:CreatePath({
-                AgentRadius = 2,
-                AgentHeight = 5,
-                AgentCanJump = true,
-                AgentJumpHeight = 10,
-                AgentMaxSlope = 45,
-            })
-            path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-            local waypoints = path:GetWaypoints()
-            local waypointIndex = 1
-
-            local function followPath()
-                if waypointIndex <= #waypoints then
-                    local waypoint = waypoints[waypointIndex]
-                    local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-                    if humanoidRootPart then
-                        -- Rotate toward target
-                        local direction = (waypoint.Position - humanoidRootPart.Position).unit
-                        local lookCFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + direction)
-                        humanoidRootPart.CFrame = lookCFrame * CFrame.Angles(0, math.rad(10), 0) -- Add spin
-                    end
-
-                    humanoid:MoveTo(waypoint.Position)
-                    humanoid.MoveToFinished:Connect(function(reached)
-                        if reached then
-                            waypointIndex = waypointIndex + 1
-                            followPath()
-                        else
-                            -- Path was blocked, recompute path
-                                print('hi');
-                            moveToClosestPlayer()
-                        end
-                    end)
-                end
-            end
-
-            followPath()
-        end
-    end
-end
-
 -- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enabled)
     if enabled then
@@ -142,29 +94,15 @@ local function autoPassBomb()
         if Bomb then
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
             local closestPlayer, distance = getClosestPlayer()
-            if closestPlayer and closestPlayer.Character and distance <= maxPassDistance then
+            if closestPlayer and closestPlayer.Character and distance <= bombPassDistance then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                if not lastTargetPosition or (lastTargetPosition - targetPosition).magnitude > 5 then
-                    lastTargetPosition = targetPosition
-                    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                    if humanoid then
-                        local path = PathfindingService:CreatePath({
-                            AgentRadius = 2,
-                            AgentHeight = 5,
-                            AgentCanJump = true,
-                            AgentJumpHeight = 10,
-                            AgentMaxSlope = 45,
-                        })
-                        path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                        for _, waypoint in ipairs(path:GetWaypoints()) do
-                            humanoid:MoveTo(waypoint.Position)
-                            humanoid.MoveToFinished:Wait()
-                        end
-                    end
+                local humanoidRootPart = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+                if humanoidRootPart then
+                    -- Rotate toward target
+                    local direction = (targetPosition - humanoidRootPart.Position).unit
+                    local lookCFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + direction)
+                    humanoidRootPart.CFrame = lookCFrame * CFrame.Angles(0, math.rad(10), 0) -- Add spin
                 end
-
-                -- Move or rotate character slightly toward the target
-                //moveToClosestPlayer()
 
                 -- Fire the remote event to pass the bomb
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
