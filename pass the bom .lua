@@ -82,6 +82,23 @@ local function applyRemoveHitbox(enabled)
     LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
 end
 
+-- Function to perform a random 360 spin
+local function performRandomSpin(humanoidRootPart)
+    local spins = {
+        {angle = 10, delay = 0.05},
+        {angle = 15, delay = 0.04},
+        {angle = 20, delay = 0.03},
+        {angle = 10, delay = 0.06},
+        {angle = 15, delay = 0.05},
+        {angle = 20, delay = 0.04},
+    }
+    local spin = spins[math.random(1, #spins)]
+    for i = 1, 36 do
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spin.angle), 0)
+        wait(spin.delay)
+    end
+end
+
 -- Auto Pass Bomb Logic
 local function autoPassBomb()
     if not AutoPassEnabled then return end
@@ -103,15 +120,30 @@ local function autoPassBomb()
                     local lookCFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + direction)
                     humanoidRootPart.CFrame = lookCFrame
 
-                    -- Add 360 spin
-                    for i = 1, 36 do
-                        humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0)
-                        wait(0.01)
-                    end
+                    -- Perform random 360 spin
+                    performRandomSpin(humanoidRootPart)
                 end
 
                 -- Fire the remote event to pass the bomb
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+            else
+                -- Move to the closest player if they are out of bomb pass distance
+                local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
+                if humanoid and closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                    local path = PathfindingService:CreatePath({
+                        AgentRadius = 2,
+                        AgentHeight = 5,
+                        AgentCanJump = true,
+                        AgentJumpHeight = 10,
+                        AgentMaxSlope = 45,
+                    })
+                    path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, closestPlayer.Character.HumanoidRootPart.Position)
+                    local waypoints = path:GetWaypoints()
+                    for _, waypoint in ipairs(waypoints) do
+                        humanoid:MoveTo(waypoint.Position)
+                        humanoid.MoveToFinished:Wait()
+                    end
+                end
             end
         end
     end)
