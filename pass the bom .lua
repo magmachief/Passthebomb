@@ -210,7 +210,7 @@ local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magm
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
 -- Make the window draggable
-makeDraggable(Window)
+makeDraggable(OrionLib)
 
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
