@@ -199,7 +199,7 @@ local function hookBombTimer()
     end
 end
 
--- Anti-Kick Mechanism
+-- Anti-Kick Mechanism - Subtle Hooking
 local function antiKick()
     local mt = getrawmetatable(game)
     local oldNamecall = mt.__namecall
@@ -212,6 +212,8 @@ local function antiKick()
         end
         return oldNamecall(self, ...)
     end)
+
+    hookfunction(Players.LocalPlayer.Kick, function() end)
 
     setreadonly(mt, true)
 end
