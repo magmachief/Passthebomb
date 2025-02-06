@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -20,6 +21,11 @@ local uiThemes = {
 
 -- Function to make a UI element draggable
 local function makeDraggable(frame)
+    if not frame then
+        warn("Frame is nil. Cannot make it draggable.")
+        return
+    end
+
     local dragging = false
     local dragInput, mousePos, framePos
 
@@ -163,7 +169,15 @@ end
 
 -- Function to hook the bomb timer
 local function hookBombTimer()
-    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+    local function tryToFindBomb()
+        local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+        if not Bomb then
+            Bomb = LocalPlayer.Backpack:FindFirstChild("Bomb")
+        end
+        return Bomb
+    end
+
+    local Bomb = tryToFindBomb()
     if Bomb then
         local Timer = Bomb:FindFirstChild("Timer") or Bomb:FindFirstChild("Countdown") -- Adjust the name based on the actual game implementation
         if Timer then
@@ -175,7 +189,7 @@ local function hookBombTimer()
             warn("Timer not found on the Bomb")
         end
     else
-        warn("Bomb not found in the character")
+        warn("Bomb not found in the character or backpack")
     end
 end
 
