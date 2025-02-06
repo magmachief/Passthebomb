@@ -77,7 +77,7 @@ local function moveToClosestPlayer()
                             followPath()
                         else
                             -- Path was blocked, recompute path
-                            moveToClosestPlayer()
+                           -- // moveToClosestPlayer()
                         end
                     end)
                 end
@@ -163,7 +163,7 @@ local function autoPassBomb()
                 end
 
                 -- Move or rotate character slightly toward the target
-                moveToClosestPlayer()
+                //moveToClosestPlayer()
 
                 -- Fire the remote event to pass the bomb
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
