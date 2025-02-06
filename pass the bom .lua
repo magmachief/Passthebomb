@@ -1,9 +1,7 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local PathfindingService = game:GetService("PathfindingService")
 local StarterGui = game:GetService("StarterGui")
-local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -163,12 +161,31 @@ local function autoPassBomb()
     end)
 end
 
+-- Function to hook the bomb timer
+local function hookBombTimer()
+    local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
+    if Bomb then
+        local Timer = Bomb:FindFirstChild("Timer") or Bomb:FindFirstChild("Countdown") -- Adjust the name based on the actual game implementation
+        if Timer then
+            Timer:GetPropertyChangedSignal("Value"):Connect(function()
+                print("Time left: " .. Timer.Value)
+                -- You can also update a UI element here to display the remaining time
+            end)
+        else
+            warn("Timer not found on the Bomb")
+        end
+    else
+        warn("Bomb not found in the character")
+    end
+end
+
 --========================--
 --  APPLY FEATURES ON RESPAWN --
 --========================--
 LocalPlayer.CharacterAdded:Connect(function()
     if AntiSlipperyEnabled then applyAntiSlippery(true) end
     if RemoveHitboxEnabled then applyRemoveHitbox(true) end
+    hookBombTimer() -- Hook the bomb timer on respawn
 end)
 
 --========================--
@@ -184,7 +201,7 @@ makeDraggable(Window)
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
     Name = "Automated",
-    Icon = "rbxassetid://14103606744",
+    Icon = "rbxassetid://4483345998",
     PremiumOnly = false
 })
 
