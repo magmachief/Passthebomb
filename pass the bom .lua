@@ -199,6 +199,23 @@ local function hookBombTimer()
     end
 end
 
+-- Anti-Kick Mechanism
+local function antiKick()
+    local mt = getrawmetatable(game)
+    local oldNamecall = mt.__namecall
+    setreadonly(mt, false)
+
+    mt.__namecall = newcclosure(function(self, ...)
+        local method = getnamecallmethod()
+        if method == "Kick" then
+            return
+        end
+        return oldNamecall(self, ...)
+    end)
+
+    setreadonly(mt, true)
+end
+
 --========================--
 --  APPLY FEATURES ON RESPAWN --
 --========================--
@@ -207,6 +224,9 @@ LocalPlayer.CharacterAdded:Connect(function()
     if RemoveHitboxEnabled then applyRemoveHitbox(true) end
     hookBombTimer() -- Hook the bomb timer on respawn
 end)
+
+-- Apply anti-kick mechanism
+antiKick()
 
 --========================--
 --  ORIONLIB INTERFACE    --
