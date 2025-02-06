@@ -15,7 +15,6 @@ local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
 local lastTargetPosition = nil -- Cached position for pathfinding
 local maxPassDistance = 20 -- Maximum distance allowed for a bomb pass
-local targetReachedTolerance = 2 -- Tolerance to consider target reached
 local uiThemes = {
     ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
@@ -76,11 +75,8 @@ local function moveToClosestPlayer()
                         if reached then
                             waypointIndex = waypointIndex + 1
                             followPath()
-                        elseif (LocalPlayer.Character.HumanoidRootPart.Position - targetPosition).magnitude <= targetReachedTolerance then
-                            print("Target reached.")
                         else
                             -- Path was blocked, recompute path
-                            print("Path blocked, recomputing path")
                             moveToClosestPlayer()
                         end
                     end)
@@ -88,11 +84,7 @@ local function moveToClosestPlayer()
             end
 
             followPath()
-        else
-            print("Humanoid not found!")
         end
-    else
-        print("Closest player or their HumanoidRootPart not found!")
     end
 end
 
@@ -141,9 +133,8 @@ end
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
-        local backpackBomb = LocalPlayer.Backpack:FindFirstChild("Bomb")
-        if backpackBomb then
-            backpackBomb.Parent = LocalPlayer.Character
+        if LocalPlayer.Backpack:FindFirstChild("Bomb") then
+            LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
         end
 
         local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
@@ -175,17 +166,9 @@ local function autoPassBomb()
                 moveToClosestPlayer()
 
                 -- Fire the remote event to pass the bomb
-                if BombEvent then
-                    BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
-                else
-                    print("BombEvent not found!")
-                end
+                BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
-        else
-            print("Bomb not found in character!")
         end
-    end, function(errorMessage)
-        warn("An error occurred in autoPassBomb: " .. errorMessage)
     end)
 end
 
