@@ -77,8 +77,8 @@ local function moveToClosestPlayer()
                             followPath()
                         else
                             -- Path was blocked, recompute path
-                                print('hi')
-                           -- // moveToClosestPlayer()
+                                print('hi');
+                            moveToClosestPlayer()
                         end
                     end)
                 end
