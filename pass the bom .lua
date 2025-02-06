@@ -15,6 +15,7 @@ local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
 local lastTargetPosition = nil -- Cached position for pathfinding
 local maxPassDistance = 20 -- Maximum distance allowed for a bomb pass
+local targetReachedTolerance = 2 -- Tolerance to consider target reached
 local uiThemes = {
     ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
@@ -75,6 +76,8 @@ local function moveToClosestPlayer()
                         if reached then
                             waypointIndex = waypointIndex + 1
                             followPath()
+                        elseif (LocalPlayer.Character.HumanoidRootPart.Position - targetPosition).magnitude <= targetReachedTolerance then
+                            print("Target reached.")
                         else
                             -- Path was blocked, recompute path
                             print("Path blocked, recomputing path")
