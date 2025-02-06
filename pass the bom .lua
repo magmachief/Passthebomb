@@ -66,7 +66,27 @@ end
 --========================--
 --    UTILITY FUNCTIONS   --
 --========================--
+-- Function to move the Shift Lock button to the Jump button position
+local function moveShiftLockButton()
+    -- Get the player's PlayerGui
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
 
+    -- Wait for the Shift Lock button and Jump button to be created
+    local shiftLockButton = playerGui:WaitForChild("ShiftLockButton", 10)
+    local touchGui = playerGui:WaitForChild("TouchGui", 10)
+    local jumpButton = touchGui:WaitForChild("TouchControlFrame"):WaitForChild("JumpButton", 10)
+
+    if shiftLockButton and jumpButton then
+        -- Set the Shift Lock button position to the Jump button position
+        shiftLockButton.Position = jumpButton.Position
+        shiftLockButton.Size = jumpButton.Size
+
+        -- Optionally hide the Jump button if needed
+        jumpButton.Visible = false
+    else
+        warn("ShiftLockButton or JumpButton not found")
+    end
+end
 -- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -208,6 +228,7 @@ LocalPlayer.CharacterAdded:Connect(function()
     if AntiSlipperyEnabled then applyAntiSlippery(true) end
     if RemoveHitboxEnabled then applyRemoveHitbox(true) end
     hookBombTimer() -- Hook the bomb timer on respawn
+    moveShiftLockButton()
 end)
 
 --========================--
