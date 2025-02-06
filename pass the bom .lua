@@ -77,6 +77,7 @@ local function moveToClosestPlayer()
                             followPath()
                         else
                             -- Path was blocked, recompute path
+                            print("Path blocked, recomputing path")
                             moveToClosestPlayer()
                         end
                     end)
@@ -84,7 +85,11 @@ local function moveToClosestPlayer()
             end
 
             followPath()
+        else
+            print("Humanoid not found!")
         end
+    else
+        print("Closest player or their HumanoidRootPart not found!")
     end
 end
 
@@ -133,8 +138,9 @@ end
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
-        if LocalPlayer.Backpack:FindFirstChild("Bomb") then
-            LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
+        local backpackBomb = LocalPlayer.Backpack:FindFirstChild("Bomb")
+        if backpackBomb then
+            backpackBomb.Parent = LocalPlayer.Character
         end
 
         local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
@@ -166,9 +172,17 @@ local function autoPassBomb()
                 moveToClosestPlayer()
 
                 -- Fire the remote event to pass the bomb
-                BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                if BombEvent then
+                    BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                else
+                    print("BombEvent not found!")
+                end
             end
+        else
+            print("Bomb not found in character!")
         end
+    end, function(errorMessage)
+        warn("An error occurred in autoPassBomb: " .. errorMessage)
     end)
 end
 
