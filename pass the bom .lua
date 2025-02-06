@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local PathfindingService = game:GetService("PathfindingService")
 local StarterGui = game:GetService("StarterGui")
+local UserInputService = game:GetService("UserInputService")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -18,6 +19,44 @@ local uiThemes = {
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
     ["Red"] = { Background = Color3.new(1, 0, 0), Text = Color3.new(1, 1, 1) },
 }
+
+-- Function to make a UI element draggable
+local function makeDraggable(frame)
+    local dragging = false
+    local dragInput, mousePos, framePos
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            mousePos = input.Position
+            framePos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - mousePos
+            frame.Position = UDim2.new(
+                framePos.X.Scale,
+                framePos.X.Offset + delta.X,
+                framePos.Y.Scale,
+                framePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
 
 --========================--
 --    UTILITY FUNCTIONS   --
@@ -139,10 +178,13 @@ end)
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
+-- Make the window draggable
+makeDraggable(Window)
+
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
     Name = "Automated",
-    Icon = "rbxassetid://4483345998",
+    Icon = "rbxassetid://14103606744",
     PremiumOnly = false
 })
 
