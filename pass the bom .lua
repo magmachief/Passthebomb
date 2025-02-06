@@ -170,10 +170,7 @@ end
 -- Function to hook the bomb timer
 local function hookBombTimer()
     local function tryToFindBomb()
-        local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-        if not Bomb then
-            Bomb = LocalPlayer.Backpack:FindFirstChild("Bomb")
-        end
+        local Bomb = LocalPlayer.Backpack:FindFirstChild("Bomb")
         return Bomb
     end
 
@@ -189,7 +186,7 @@ local function hookBombTimer()
             warn("Timer not found on the Bomb")
         end
     else
-        warn("Bomb not found in the character or backpack")
+        warn("Bomb not found in the backpack")
     end
 end
 
@@ -209,8 +206,8 @@ end)
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
--- Make the window draggable
-makeDraggable(OrionLib)
+-- Make the OrionLib window draggable
+makeDraggable(Window.Container)
 
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
