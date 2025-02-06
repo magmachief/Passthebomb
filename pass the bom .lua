@@ -101,7 +101,13 @@ local function autoPassBomb()
                     -- Rotate toward target
                     local direction = (targetPosition - humanoidRootPart.Position).unit
                     local lookCFrame = CFrame.new(humanoidRootPart.Position, humanoidRootPart.Position + direction)
-                    humanoidRootPart.CFrame = lookCFrame * CFrame.Angles(0, math.rad(10), 0) -- Add spin
+                    humanoidRootPart.CFrame = lookCFrame
+
+                    -- Add 360 spin
+                    for i = 1, 36 do
+                        humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0)
+                        wait(0.01)
+                    end
                 end
 
                 -- Fire the remote event to pass the bomb
