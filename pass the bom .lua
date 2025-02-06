@@ -13,7 +13,6 @@ local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
-local lastTargetPosition = nil -- Cached position for pathfinding
 local uiThemes = {
     ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
@@ -38,26 +37,6 @@ local function getClosestPlayer()
         end
     end
     return closestPlayer
-end
-
--- Function to move or rotate the character to look more natural during bomb passing
-local function moveCharacterTowardTarget(targetPosition)
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-
-    -- Calculate direction to target
-    local direction = (targetPosition - humanoidRootPart.Position).unit
-
-    -- Slightly move or rotate the character to seem active
-    humanoidRootPart.CFrame = humanoidRootPart.CFrame
-        * CFrame.Angles(0, math.rad(10), 0) -- Add a smaller spin
-        * CFrame.new(direction.X * 0.2, 0, direction.Z * 0.2) -- Move slightly slower toward the target
-
-    -- Add a slight delay to slow down movement
-    wait(0.2) -- Adjust delay as needed
 end
 
 -- Anti-Slippery: Apply or reset physical properties
@@ -115,30 +94,10 @@ local function autoPassBomb()
             local closestPlayer = getClosestPlayer()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                if not lastTargetPosition or (lastTargetPosition - targetPosition).magnitude > 5 then
-                    lastTargetPosition = targetPosition
-                    local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-                    if humanoid then
-                        local path = PathfindingService:CreatePath({
-                            AgentRadius = 2,
-                            AgentHeight = 5,
-                            AgentCanJump = true,
-                            AgentJumpHeight = 10,
-                            AgentMaxSlope = 45,
-                        })
-                        path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, targetPosition)
-                        for _, waypoint in ipairs(path:GetWaypoints()) do
-                            humanoid:MoveTo(waypoint.Position)
-                            humanoid.MoveToFinished:Wait()
-                        end
-                    end
+                if (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= bombPassDistance then
+                    -- Fire the remote event to pass the bomb
+                    BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
                 end
-
-                -- Move or rotate character slightly toward the target
-                moveCharacterTowardTarget(targetPosition)
-
-                -- Fire the remote event to pass the bomb
-                BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
         end
     end)
@@ -234,5 +193,75 @@ AutomatedTab:AddDropdown({
     end
 })
 
+-- New Features Tab
+local NewFeaturesTab = Window:MakeTab({
+    Name = "New Features",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+NewFeaturesTab:AddLabel("New exciting features coming soon!")
+
+NewFeaturesTab:AddButton({
+    Name = "Teleport to Random Player",
+    Callback = function()
+        local closestPlayer = getClosestPlayer()
+        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = closestPlayer.Character.HumanoidRootPart.CFrame
+        end
+    end
+})
+
+NewFeaturesTab:AddSlider({
+    Name = "Character Speed",
+    Min = 16,
+    Max = 100,
+    Default = 16,
+    Increment = 1,
+    Callback = function(value)
+        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
+        if humanoid then
+            humanoid.WalkSpeed = value
+        end
+    end
+})
+
+NewFeaturesTab:AddToggle({
+    Name = "God Mode",
+    Default = false,
+    Callback = function(value)
+        if value then
+            local character = LocalPlayer.Character
+            if character then
+                character.Humanoid.MaxHealth = math.huge
+                character.Humanoid.Health = math.huge
+            end
+        else
+            local character = LocalPlayer.Character
+            if character then
+                character.Humanoid.MaxHealth = 100
+                character.Humanoid.Health = 100
+            end
+        end
+    end
+})
+
+NewFeaturesTab:AddToggle({
+    Name = "Invisible Mode",
+    Default = false,
+    Callback = function(value)
+        local character = LocalPlayer.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Transparency = value and 1 or 0
+                elseif part:IsA("Decal") or part:IsA("Texture") then
+                    part.Transparency = value and 1 or 0
+                end
+            end
+        end
+    end
+})
+
 OrionLib:Init()
-print("Yon Menu Script Loaded with Adjustments")
+print("Yon Menu Script Loaded with Enhancements")
