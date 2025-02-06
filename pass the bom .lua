@@ -12,16 +12,17 @@ local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 local AutoCollectEnabled = false
-local HealthMonitorEnabled = false
 local EscapeMechanismEnabled = false
+local AutoEquipBestGearEnabled = false
+local AntiAFKEnabled = false
 local autoPassConnection = nil
 local autoCollectConnection = nil
-local healthMonitorConnection = nil
 local escapeMechanismConnection = nil
+local autoEquipConnection = nil
+local antiAFKConnection = nil
 local pathfindingSpeed = 16 -- Default speed
 local lastTargetPosition = nil -- Cached position for pathfinding
 local maxPassDistance = 20 -- Maximum distance allowed for a bomb pass
-local healthThreshold = 20 -- Health threshold for health monitor
 local escapeThreshold = 15 -- Distance threshold for escape mechanism
 local uiThemes = {
     ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
@@ -49,36 +50,20 @@ local function getClosestPlayer()
     return closestPlayer, shortestDistance
 end
 
--- Function to get the closest item
-local function getClosestItem()
-    local closestItem = nil
+-- Function to get the closest coin
+local function getClosestCoin()
+    local closestCoin = nil
     local shortestDistance = math.huge
-    for _, item in pairs(workspace:GetChildren()) do
-        if item:IsA("Tool") or item:IsA("Part") then
-            local distance = (item.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+    for _, coin in pairs(workspace:GetChildren()) do
+        if coin.Name == "Coin" and coin:IsA("Part") then
+            local distance = (coin.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
-                closestItem = item
+                closestCoin = coin
             end
         end
     end
-    return closestItem, shortestDistance
-end
-
--- Function to get the closest health pack
-local function getClosestHealthPack()
-    local closestHealthPack = nil
-    local shortestDistance = math.huge
-    for _, item in pairs(workspace:GetChildren()) do
-        if item:IsA("Tool") and item:FindFirstChild("HealthPack") then
-            local distance = (item.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
-            if distance < shortestDistance then
-                shortestDistance = distance
-                closestHealthPack = item
-            end
-        end
-    end
-    return closestHealthPack, shortestDistance
+    return closestCoin, shortestDistance
 end
 
 -- Function to get the closest safe zone
@@ -203,42 +188,16 @@ local function autoPassBomb()
     end)
 end
 
--- Auto Collect Items Logic
-local function autoCollectItems()
+-- Auto Collect Coins Logic
+local function autoCollectCoins()
     if not AutoCollectEnabled then return end
     pcall(function()
-        local closestItem, distance = getClosestItem()
-        if closestItem and distance <= bombPassDistance then
+        local closestCoin, distance = getClosestCoin()
+        if closestCoin and distance <= bombPassDistance then
             local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
             if humanoid then
-                humanoid:MoveTo(closestItem.Position)
+                humanoid:MoveTo(closestCoin.Position)
                 humanoid.MoveToFinished:Wait()
-            end
-        end
-    end)
-end
-
--- Health Monitor Logic
-local function healthMonitor()
-    if not HealthMonitorEnabled then return end
-    pcall(function()
-        local humanoid = LocalPlayer.Character:FindFirstChild("Humanoid")
-        if humanoid and humanoid.Health <= healthThreshold then
-            local closestHealthPack, distance = getClosestHealthPack()
-            if closestHealthPack then
-                local path = PathfindingService:CreatePath({
-                    AgentRadius = 2,
-                    AgentHeight = 5,
-                    AgentCanJump = true,
-                    AgentJumpHeight = 10,
-                    AgentMaxSlope = 45,
-                })
-                path:ComputeAsync(LocalPlayer.Character.HumanoidRootPart.Position, closestHealthPack.Position)
-                local waypoints = path:GetWaypoints()
-                for _, waypoint in ipairs(waypoints) do
-                    humanoid:MoveTo(waypoint.Position)
-                    humanoid.MoveToFinished:Wait()
-                end
             end
         end
     end)
@@ -269,6 +228,38 @@ local function escapeMechanism()
                     end
                 end
             end
+        end
+    end)
+end
+
+-- Auto Equip Best Gear Logic
+local function autoEquipBestGear()
+    if not AutoEquipBestGearEnabled then return end
+    pcall(function()
+        local bestGear = nil
+        local highestValue = 0
+        for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
+            if item:IsA("Tool") and item:FindFirstChild("Value") then
+                local value = item.Value
+                if value > highestValue then
+                    highestValue = value
+                    bestGear = item
+                end
+            end
+        end
+        if bestGear then
+            bestGear.Parent = LocalPlayer.Character
+        end
+    end)
+end
+
+-- Anti-AFK Logic
+local function antiAFK()
+    if not AntiAFKEnabled then return end
+    pcall(function()
+        while AntiAFKEnabled do
+            LocalPlayer.Character:FindFirstChild("Humanoid"):Move(Vector3.new(0, 0, 0), true)
+            wait(30)
         end
     end)
 end
@@ -330,32 +321,16 @@ AutomatedTab:AddToggle({
 })
 
 AutomatedTab:AddToggle({
-    Name = "Auto Collect Items",
+    Name = "Auto Collect Coins",
     Default = AutoCollectEnabled,
     Callback = function(value)
         AutoCollectEnabled = value
         if AutoCollectEnabled then
-            autoCollectConnection = RunService.Stepped:Connect(autoCollectItems)
+            autoCollectConnection = RunService.Stepped:Connect(autoCollectCoins)
         else
             if autoCollectConnection then
                 autoCollectConnection:Disconnect()
                 autoCollectConnection = nil
-            end
-        end
-    end
-})
-
-AutomatedTab:AddToggle({
-    Name = "Health Monitor",
-    Default = HealthMonitorEnabled,
-    Callback = function(value)
-        HealthMonitorEnabled = value
-        if HealthMonitorEnabled then
-            healthMonitorConnection = RunService.Stepped:Connect(healthMonitor)
-        else
-            if healthMonitorConnection then
-                healthMonitorConnection:Disconnect()
-                healthMonitorConnection = nil
             end
         end
     end
@@ -377,6 +352,38 @@ AutomatedTab:AddToggle({
     end
 })
 
+AutomatedTab:AddToggle({
+    Name = "Auto Equip Best Gear",
+    Default = AutoEquipBestGearEnabled,
+    Callback = function(value)
+        AutoEquipBestGearEnabled = value
+        if AutoEquipBestGearEnabled then
+            autoEquipConnection = RunService.Stepped:Connect(autoEquipBestGear)
+        else
+            if autoEquipConnection then
+                autoEquipConnection:Disconnect()
+                autoEquipConnection = nil
+            end
+        end
+    end
+})
+
+AutomatedTab:AddToggle({
+    Name = "Anti-AFK",
+    Default = AntiAFKEnabled,
+    Callback = function(value)
+        AntiAFKEnabled = value
+        if AntiAFKEnabled then
+            antiAFKConnection = RunService.Stepped:Connect(antiAFK)
+        else
+            if antiAFKConnection then
+                antiAFKConnection:Disconnect()
+                antiAFKConnection = nil
+            end
+        end
+    end
+})
+
 AutomatedTab:AddSlider({
     Name = "Bomb Pass Distance",
     Min = 5,
@@ -385,17 +392,6 @@ AutomatedTab:AddSlider({
     Increment = 1,
     Callback = function(value)
         bombPassDistance = value
-    end
-})
-
-AutomatedTab:AddSlider({
-    Name = "Health Threshold",
-    Min = 10,
-    Max = 100,
-    Default = healthThreshold,
-    Increment = 1,
-    Callback = function(value)
-        healthThreshold = value
     end
 })
 
@@ -432,6 +428,25 @@ AutomatedTab:AddDropdown({
         end
     end
 })
+
+-- UI Enhancements: Added more UI elements to control new features and display current status
+local StatusTab = Window:MakeTab({
+    Name = "Status",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+StatusTab:AddLabel("Current Status:")
+StatusTab:AddLabel("Anti Slippery: " .. tostring(AntiSlipperyEnabled))
+StatusTab:AddLabel("Remove Hitbox: " .. tostring(RemoveHitboxEnabled))
+StatusTab:AddLabel("Auto Pass Bomb: " .. tostring(AutoPassEnabled))
+StatusTab:AddLabel("Auto Collect Coins: " .. tostring(AutoCollectEnabled))
+StatusTab:AddLabel("Escape Mechanism: " .. tostring(EscapeMechanismEnabled))
+StatusTab:AddLabel("Auto Equip Best Gear: " .. tostring(AutoEquipBestGearEnabled))
+StatusTab:AddLabel("Anti-AFK: " .. tostring(AntiAFKEnabled))
+StatusTab:AddLabel("Bomb Pass Distance: " .. tostring(bombPassDistance))
+StatusTab:AddLabel("Escape Threshold: " .. tostring(escapeThreshold))
+StatusTab:AddLabel("Pathfinding Speed: " .. tostring(pathfindingSpeed))
 
 OrionLib:Init()
 print("Yon Menu Script Loaded with Adjustments")
