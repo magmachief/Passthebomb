@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
+local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -185,6 +186,7 @@ local function hookBombTimer()
 
     local Bomb = tryToFindBomb()
     if Bomb then
+        print("Bomb found: " .. Bomb.Name)
         local Timer = Bomb:FindFirstChild("Timer") or Bomb:FindFirstChild("Countdown") -- Adjust the name based on the actual game implementation
         if Timer then
             Timer:GetPropertyChangedSignal("Value"):Connect(function()
@@ -222,7 +224,7 @@ icon.Size = UDim2.new(0, 50, 0, 50)
 icon.Position = UDim2.new(0, 10, 0, 10)
 icon.Image = "rbxassetid://4483345998" -- Replace with your icon asset ID
 icon.BackgroundTransparency = 1
-icon.Parent = game:GetService("CoreGui")
+icon.Parent = CoreGui
 
 -- Make the icon draggable
 makeDraggable(icon)
