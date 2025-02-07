@@ -6,12 +6,12 @@ local ContextActionService = game:GetService("ContextActionService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
-local bomb = script.Parent
-local timer = bomb:FindFirstChild("Timer") or bomb:FindFirstChild("Countdown")
+local bombe = script.Parent
+local timere = bombe:FindFirstChild("Timer") or bombe:FindFirstChild("Countdown")
 
-if timer then
-    timer:GetPropertyChangedSignal("Value"):Connect(function()
-        print("Time left: " .. timer.Value)
+if timere then
+    timere:GetPropertyChangedSignal("Value"):Connect(function()
+        print("Time left: " .. timere.Value)
     end)
 end
 -- Constants
