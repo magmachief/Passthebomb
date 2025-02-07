@@ -1,17 +1,30 @@
 -- This script should be placed in a LocalScript or ServerScript in StarterPlayerScripts or StarterGui
 
 local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
 local function findBombTimer()
-    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-    local bomb = character:FindFirstChild("Bomb") or character:WaitForChild("Bomb", 10)
-    
+    local function searchForBomb(parent)
+        for _, obj in pairs(parent:GetChildren()) do
+            if obj:IsA("Tool") and obj.Name:lower():find("bomb") then
+                return obj
+            end
+        end
+        return nil
+    end
+
+    local bomb = searchForBomb(LocalPlayer.Backpack) or 
+                 searchForBomb(LocalPlayer.Character) or 
+                 searchForBomb(Workspace) or 
+                 searchForBomb(ReplicatedStorage)
+
     if bomb then
+        print("Bomb found: " .. bomb.Name)
         local timer = bomb:FindFirstChild("Timer") or bomb:FindFirstChild("Countdown")
         
         if timer then
-            print("Bomb found: " .. bomb.Name)
             timer:GetPropertyChangedSignal("Value"):Connect(function()
                 print("Time left: " .. timer.Value)
             end)
@@ -19,7 +32,7 @@ local function findBombTimer()
             warn("Timer not found on the Bomb")
         end
     else
-        warn("Bomb not found in the character")
+        warn("Bomb not found in any expected location")
     end
 end
 
