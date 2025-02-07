@@ -133,11 +133,6 @@ local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
--- Constants
-local CONTEXT_ACTION_NAME = "MouseLockSwitchAction"
-local MOUSELOCK_ACTION_PRIORITY = Enum.ContextActionPriority.Medium.Value
-local DEFAULT_MOUSE_LOCK_CURSOR = "rbxasset://textures/MouseLockedCursor.png"
-
 -- Variables
 local bombPassDistance = 10
 local AutoPassEnabled = false
@@ -195,62 +190,6 @@ local function makeDraggable(frame)
         end
     end)
 end
-
--- Function to toggle Shift Lock properly
-local function toggleShiftLock()
-    isMouseLocked = not isMouseLocked
-    
-    if isMouseLocked then
-        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-        UserInputService.MouseIconEnabled = false
-    else
-        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        UserInputService.MouseIconEnabled = true
-    end
-end
-
--- Create the Shift Lock mobile button
-local function createShiftLockMobileButton()
-    local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "ShiftLockMobileScreenGui"
-    screenGui.ResetOnSpawn = false
-    screenGui.Parent = CoreGui
-
-    local shiftLockButton = Instance.new("ImageButton")
-    shiftLockButton.Name = "ShiftLockMobileButton"
-    shiftLockButton.Size = UDim2.new(0, 100, 0, 100)
-    shiftLockButton.Position = UDim2.new(0.5, -50, 1, -110)
-    shiftLockButton.AnchorPoint = Vector2.new(0.5, 1)
-    shiftLockButton.Image = "rbxassetid://4483345998"
-    shiftLockButton.BackgroundTransparency = 1
-    shiftLockButton.Parent = screenGui
-
-    shiftLockButton.MouseButton1Click:Connect(toggleShiftLock)
-end
-
--- Initialize the Shift Lock icon
-if UserInputService.TouchEnabled then
-    createShiftLockMobileButton()
-end
-
--- Ensure the Shift Lock icon is recreated when the player's character spawns
-LocalPlayer.CharacterAdded:Connect(function()
-    if UserInputService.TouchEnabled then
-        createShiftLockMobileButton()
-    end
-end)
-
--- Bind context actions for Shift Lock toggle
-local function doMouseLockSwitch(name, state, input)
-    if state == Enum.UserInputState.Begin then
-        toggleShiftLock()
-        return Enum.ContextActionResult.Sink
-    end
-    return Enum.ContextActionResult.Pass
-end
-
-ContextActionService:BindActionAtPriority(CONTEXT_ACTION_NAME, doMouseLockSwitch, false, MOUSELOCK_ACTION_PRIORITY, unpack(boundKeys))
-
 -- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
