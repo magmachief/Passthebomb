@@ -5,28 +5,59 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
-local function searchForBombRecursive(parent)
-    if parent then
-        for _, obj in pairs(parent:GetDescendants()) do
-            if obj:IsA("Tool") and obj.Name:lower():find("bomb") then
-                return obj
+local function searchForTimer(obj)
+    for _, child in pairs(obj:GetChildren()) do
+        if child:IsA("NumberValue") or child:IsA("IntValue") then
+            if child.Name:lower():find("timer") or child.Name:lower():find("countdown") then
+                return child
             end
         end
     end
     return nil
 end
 
+local function searchForBomb(parent)
+    if parent then
+        for _, obj in pairs(parent:GetChildren()) do
+            if obj:IsA("Tool") and obj:FindFirstChildOfClass("RemoteEvent") then -- Assuming bombs have RemoteEvents
+                print("Potential bomb found in: " .. parent:GetFullName())
+                local timer = searchForTimer(obj)
+                if timer then
+                    return obj, timer
+                end
+            end
+        end
+    end
+    return nil, nil
+end
+
+local function searchForBombRecursive(parent)
+    if parent then
+        for _, obj in pairs(parent:GetDescendants()) do
+            if obj:IsA("Tool") and obj:FindFirstChildOfClass("RemoteEvent") then -- Assuming bombs have RemoteEvents
+                print("Potential bomb found in: " .. parent:GetFullName())
+                local timer = searchForTimer(obj)
+                if timer then
+                    return obj, timer
+                end
+            end
+        end
+    end
+    return nil, nil
+end
+
 local function findBombTimer()
-    local bomb = searchForBombRecursive(LocalPlayer.Backpack) or 
-                 searchForBombRecursive(LocalPlayer.Character) or 
-                 searchForBombRecursive(Workspace) or 
-                 searchForBombRecursive(ReplicatedStorage)
+    local bomb, timer = searchForBomb(LocalPlayer.Backpack) or 
+                        searchForBomb(LocalPlayer.Character) or 
+                        searchForBomb(Workspace) or 
+                        searchForBomb(ReplicatedStorage) or
+                        searchForBombRecursive(Workspace) or
+                        searchForBombRecursive(ReplicatedStorage)
 
     if bomb then
         print("Bomb found: " .. bomb.Name)
-        local timer = bomb:FindFirstChild("Timer") or bomb:FindFirstChild("Countdown")
-        
         if timer then
+            print("Timer found: " .. timer.Name)
             timer:GetPropertyChangedSignal("Value"):Connect(function()
                 print("Time left: " .. timer.Value)
             end)
