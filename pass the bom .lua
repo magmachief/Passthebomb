@@ -190,6 +190,8 @@ local function makeDraggable(frame)
         end
     end)
 end
+
+
 -- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -206,22 +208,36 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- Function to rotate the character to look more natural during bomb passing
-local function rotateCharacterTowardsTarget(targetPosition)
+-- Function to get the closest player with a bomb
+local function getClosestPlayerWithBomb()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Bomb") then
+            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+            if distance < shortestDistance then
+                shortestDistance = distance
+                closestPlayer = player
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-- Function to rotate the character to face away from the bomb
+local function faceAwayFromBomb()
     local character = LocalPlayer.Character
     if not character then return end
 
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then return end
 
-    -- Calculate direction to target
-    local direction = (targetPosition - humanoidRootPart.Position).unit
-
-    -- Slightly rotate the character to seem active
-    humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0)
-
-    -- Add a slight delay to slow down rotation
-    wait(0.2) -- Adjust delay as needed
+    local closestBombPlayer = getClosestPlayerWithBomb()
+    if closestBombPlayer and closestBombPlayer.Character and closestBombPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local directionToBomb = (closestBombPlayer.Character.HumanoidRootPart.Position - humanoidRootPart.Position).unit
+        local awayFromBomb = humanoidRootPart.Position - directionToBomb * 10
+        humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, awayFromBomb)
+    end
 end
 
 -- Anti-Slippery: Apply or reset physical properties
@@ -290,6 +306,13 @@ local function autoPassBomb()
         end
     end)
 end
+
+-- Rotate away from the bomb if a player with a bomb is near
+RunService.RenderStepped:Connect(function()
+    if isMouseLocked then
+        faceAwayFromBomb()
+    end
+end)
 
 --========================--
 --  APPLY FEATURES ON RESPAWN --
