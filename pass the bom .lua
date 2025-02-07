@@ -124,6 +124,22 @@ local function YDYMLAX_fake_script()
 end
 coroutine.wrap(YDYMLAX_fake_script)()
 
+-- Double-tap functionality
+local lastTapTime = 0
+local doubleTapTime = 0.5 -- seconds
+local isDraggable = true
+
+LockButton.MouseButton1Click:Connect(function()
+    local currentTime = tick()
+    if currentTime - lastTapTime <= doubleTapTime then
+        isDraggable = not isDraggable
+        if isDraggable then
+            DragThingy(LockButton)
+        end
+    end
+    lastTapTime = currentTime
+end)
+
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -310,7 +326,8 @@ end
 -- Rotate away from the bomb if a player with a bomb is near
 RunService.RenderStepped:Connect(function()
     if isMouseLocked then
-        faceAwayFromBomb()
+        //faceAwayFromBomb()
+            print('hi')
     end
 end)
 
