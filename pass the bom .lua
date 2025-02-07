@@ -240,22 +240,6 @@ local function getClosestPlayerWithBomb()
     return closestPlayer
 end
 
--- Function to rotate the character to face away from the bomb
-local function faceAwayFromBomb()
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
-    if not humanoidRootPart then return end
-
-    local closestBombPlayer = getClosestPlayerWithBomb()
-    if closestBombPlayer and closestBombPlayer.Character and closestBombPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local directionToBomb = (closestBombPlayer.Character.HumanoidRootPart.Position - humanoidRootPart.Position).unit
-        local awayFromBomb = humanoidRootPart.Position - directionToBomb * 10
-        humanoidRootPart.CFrame = CFrame.new(humanoidRootPart.Position, awayFromBomb)
-    end
-end
-
 -- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enabled)
     if enabled then
@@ -312,9 +296,6 @@ local function autoPassBomb()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                 if (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= bombPassDistance then
-                    -- Rotate character slightly toward the target
-                    rotateCharacterTowardsTarget(targetPosition)
-
                     -- Fire the remote event to pass the bomb
                     BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
                 end
@@ -323,10 +304,10 @@ local function autoPassBomb()
     end)
 end
 
--- Rotate away from the bomb if a player with a bomb is near
-RunService.RenderStepped:Connect(function()
-    if isMouseLocked then
-        faceAwayFromBomb()
+-- Auto pass bomb if enabled
+RunService.Stepped:Connect(function()
+    if AutoPassEnabled then
+        autoPassBomb()
     end
 end)
 
