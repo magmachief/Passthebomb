@@ -5,22 +5,22 @@ local Workspace = game:GetService("Workspace")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local LocalPlayer = Players.LocalPlayer
 
-local function findBombTimer()
-    local function searchForBomb(parent)
-        if parent then
-            for _, obj in pairs(parent:GetChildren()) do
-                if obj:IsA("Tool") and obj.Name:lower():find("bomb") then
-                    return obj
-                end
+local function searchForBombRecursive(parent)
+    if parent then
+        for _, obj in pairs(parent:GetDescendants()) do
+            if obj:IsA("Tool") and obj.Name:lower():find("bomb") then
+                return obj
             end
         end
-        return nil
     end
+    return nil
+end
 
-    local bomb = searchForBomb(LocalPlayer.Backpack) or 
-                 searchForBomb(LocalPlayer.Character) or 
-                 searchForBomb(Workspace) or 
-                 searchForBomb(ReplicatedStorage)
+local function findBombTimer()
+    local bomb = searchForBombRecursive(LocalPlayer.Backpack) or 
+                 searchForBombRecursive(LocalPlayer.Character) or 
+                 searchForBombRecursive(Workspace) or 
+                 searchForBombRecursive(ReplicatedStorage)
 
     if bomb then
         print("Bomb found: " .. bomb.Name)
