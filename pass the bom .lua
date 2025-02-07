@@ -1,3 +1,129 @@
+local shiftlockk = Instance.new("ScreenGui")
+local LockButton = Instance.new("ImageButton")
+local btnIcon = Instance.new("ImageLabel")
+
+shiftlockk.Name = "shiftlockk"
+shiftlockk.Parent = game.CoreGui
+shiftlockk.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+shiftlockk.ResetOnSpawn = false
+
+LockButton.Name = "LockButton"
+LockButton.Parent = shiftlockk
+LockButton.AnchorPoint = Vector2.new(0.5, 0.5)
+LockButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+LockButton.BackgroundTransparency = 1.000
+LockButton.BorderColor3 = Color3.fromRGB(27, 42, 53)
+LockButton.Position = UDim2.new(0.785, 0, 0.865, 0)
+LockButton.Size = UDim2.new(0, 60, 0, 60)
+LockButton.ZIndex = 3
+LockButton.Image = "rbxassetid://530406505"
+LockButton.ImageColor3 = Color3.fromRGB(0, 133, 199)
+LockButton.ImageRectOffset = Vector2.new(2, 2)
+LockButton.ImageRectSize = Vector2.new(98, 98)
+LockButton.ImageTransparency = 0.400
+LockButton.ScaleType = Enum.ScaleType.Fit
+
+btnIcon.Name = "btnIcon"
+btnIcon.Parent = LockButton
+btnIcon.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+btnIcon.BackgroundTransparency = 1.000
+btnIcon.Position = UDim2.new(0.1, 0, 0.1, 0)
+btnIcon.Size = UDim2.new(0.8, 0, 0.8, 0)
+btnIcon.ZIndex = 3
+btnIcon.Image = "rbxasset://textures/ui/mouseLock_off.png"
+btnIcon.ImageColor3 = Color3.fromRGB(0, 0, 0)
+btnIcon.ScaleType = Enum.ScaleType.Fit
+btnIcon.SliceCenter = Rect.new(-160, 0, 100, 0)
+
+local function DragThingy(ui, dragui)
+    if not dragui then dragui = ui end
+    local UserInputService = game:GetService("UserInputService")
+    
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
+    
+    local function update(input)
+        local delta = input.Position - dragStart
+        ui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+    
+    dragui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true
+            dragStart = input.Position
+            startPos = ui.Position
+            
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+    
+    dragui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+            dragInput = input
+        end
+    end)
+    
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            update(input)
+        end
+    end)
+end
+
+DragThingy(LockButton)
+
+local function YDYMLAX_fake_script()
+    local script = Instance.new('LocalScript', LockButton)
+
+    local Input = game:GetService("UserInputService")
+    local V = false
+
+    local main = script.Parent
+
+    main.MouseButton1Click:Connect(function()
+        V = not V
+        main.btnIcon.ImageColor3 = V and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(0, 0, 0)
+        if V then
+            ForceShiftLock()
+        else
+            EndForceShiftLock()
+        end
+    end)
+
+    local g = nil
+    local GameSettings = UserSettings():GetService("UserGameSettings")
+    local J = nil
+
+    function ForceShiftLock()
+        local i, k = pcall(function()
+            return GameSettings.RotationType
+        end)
+        _ = i
+        g = k
+        J = game:GetService("RunService").RenderStepped:Connect(function()
+            pcall(function()
+                GameSettings.RotationType = Enum.RotationType.CameraRelative
+            end)
+        end)
+    end
+
+    function EndForceShiftLock()
+        if J then
+            pcall(function()
+                GameSettings.RotationType = g or Enum.RotationType.MovementRelative
+            end)
+            J:Disconnect()
+        end
+    end
+end
+coroutine.wrap(YDYMLAX_fake_script)()
+
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
