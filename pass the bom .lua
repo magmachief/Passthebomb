@@ -1,13 +1,19 @@
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
-local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
+local ContextActionService = game:GetService("ContextActionService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 
---// Variables
+-- Constants
+local CONTEXT_ACTION_NAME = "MouseLockSwitchAction"
+local MOUSELOCK_ACTION_PRIORITY = Enum.ContextActionPriority.Medium.Value
+local DEFAULT_MOUSE_LOCK_CURSOR = "rbxasset://textures/MouseLockedCursor.png"
+local CAMERA_OFFSET_DEFAULT = Vector3.new(1.75, 0, 0)
+
+-- Variables
 local bombPassDistance = 10
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
@@ -19,6 +25,8 @@ local uiThemes = {
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
     ["Red"] = { Background = Color3.new(1, 0, 0), Text = Color3.new(1, 1, 1) },
 }
+local isMouseLocked = false
+local boundKeys = {Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift} -- defaults
 
 -- Function to make a UI element draggable
 local function makeDraggable(frame)
@@ -63,30 +71,57 @@ local function makeDraggable(frame)
     end)
 end
 
---========================--
---    UTILITY FUNCTIONS   --
---========================--
--- Function to move the Shift Lock button to the Jump button position
-local function moveShiftLockButton()
-    -- Get the player's PlayerGui
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui")
+-- Create the Shift Lock icon
+local function createShiftLockIcon()
+    -- Create a ScreenGui to hold the icon
+    local screenGui = Instance.new("ScreenGui")
+    screenGui.Name = "ShiftLockScreenGui"
+    screenGui.ResetOnSpawn = false
+    screenGui.Parent = CoreGui
 
-    -- Wait for the Shift Lock button and Jump button to be created
-    local shiftLockButton = playerGui:WaitForChild("ShiftLockButton", 10)
-    local touchGui = playerGui:WaitForChild("TouchGui", 10)
-    local jumpButton = touchGui:WaitForChild("TouchControlFrame"):WaitForChild("JumpButton", 10)
+    -- Create the Shift Lock icon button
+    local shiftLockButton = Instance.new("ImageButton")
+    shiftLockButton.Name = "ShiftLockButton"
+    shiftLockButton.Size = UDim2.new(0, 50, 0, 50)
+    shiftLockButton.Position = UDim2.new(1, -60, 1, -70) -- Bottom right, with an offset of 20 units up
+    shiftLockButton.AnchorPoint = Vector2.new(1, 1)
+    shiftLockButton.Image = "rbxassetid://4483345998" -- Replace with your icon asset ID
+    shiftLockButton.BackgroundTransparency = 1
+    shiftLockButton.Parent = screenGui
 
-    if shiftLockButton and jumpButton then
-        -- Set the Shift Lock button position to the Jump button position
-        shiftLockButton.Position = jumpButton.Position
-        shiftLockButton.Size = jumpButton.Size
+    -- Toggle Shift Lock on button click
+    shiftLockButton.MouseButton1Click:Connect(function()
+        isMouseLocked = not isMouseLocked
 
-        -- Optionally hide the Jump button if needed
-        jumpButton.Visible = false
-    else
-        warn("ShiftLockButton or JumpButton not found")
-    end
+        if isMouseLocked then
+            UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+            UserInputService.MouseIcon = DEFAULT_MOUSE_LOCK_CURSOR
+        else
+            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+            UserInputService.MouseIcon = ""
+        end
+    end)
 end
+
+-- Initialize the Shift Lock icon
+createShiftLockIcon()
+
+-- Ensure the Shift Lock icon is recreated when the player's character spawns
+LocalPlayer.CharacterAdded:Connect(createShiftLockIcon)
+
+-- Bind context actions for Shift Lock toggle
+local function doMouseLockSwitch(name, state, input)
+    if state == Enum.UserInputState.Begin then
+        isMouseLocked = not isMouseLocked
+        UserInputService.MouseBehavior = isMouseLocked and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
+        UserInputService.MouseIcon = isMouseLocked and DEFAULT_MOUSE_LOCK_CURSOR or ""
+        return Enum.ContextActionResult.Sink
+    end
+    return Enum.ContextActionResult.Pass
+end
+
+ContextActionService:BindActionAtPriority(CONTEXT_ACTION_NAME, doMouseLockSwitch, false, MOUSELOCK_ACTION_PRIORITY, unpack(boundKeys))
+
 -- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -228,7 +263,6 @@ LocalPlayer.CharacterAdded:Connect(function()
     if AntiSlipperyEnabled then applyAntiSlippery(true) end
     if RemoveHitboxEnabled then applyRemoveHitbox(true) end
     hookBombTimer() -- Hook the bomb timer on respawn
-    moveShiftLockButton()
 end)
 
 --========================--
@@ -238,23 +272,8 @@ end)
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
--- Create a draggable icon
-local icon = Instance.new("ImageLabel")
-icon.Name = "DragIcon"
-icon.Size = UDim2.new(0, 50, 0, 50)
-icon.Position = UDim2.new(0, 10, 0, 10)
-icon.Image = "rbxassetid://4483345998" -- Replace with your icon asset ID
-icon.BackgroundTransparency = 1
-icon.Parent = CoreGui
-
--- Make the icon draggable
-makeDraggable(icon)
-
-icon.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        Window:Toggle()
-    end
-end)
+-- Make the OrionLib window draggable (if needed)
+makeDraggable(Window.Container)
 
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
