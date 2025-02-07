@@ -23,6 +23,7 @@ local function searchForBomb(parent)
                 print("Potential bomb found in: " .. parent:GetFullName())
                 local timer = searchForTimer(obj)
                 if timer then
+                    print("Timer found: " .. timer.Name .. " with value: " .. timer.Value)
                     return obj, timer
                 end
             end
@@ -38,6 +39,7 @@ local function searchForBombRecursive(parent)
                 print("Potential bomb found in: " .. parent:GetFullName())
                 local timer = searchForTimer(obj)
                 if timer then
+                    print("Timer found: " .. timer.Name .. " with value: " .. timer.Value)
                     return obj, timer
                 end
             end
