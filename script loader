@@ -7,9 +7,11 @@ local LocalPlayer = Players.LocalPlayer
 
 local function findBombTimer()
     local function searchForBomb(parent)
-        for _, obj in pairs(parent:GetChildren()) do
-            if obj:IsA("Tool") and obj.Name:lower():find("bomb") then
-                return obj
+        if parent then
+            for _, obj in pairs(parent:GetChildren()) do
+                if obj:IsA("Tool") and obj.Name:lower():find("bomb") then
+                    return obj
+                end
             end
         end
         return nil
