@@ -11,7 +11,6 @@ local LocalPlayer = Players.LocalPlayer
 local CONTEXT_ACTION_NAME = "MouseLockSwitchAction"
 local MOUSELOCK_ACTION_PRIORITY = Enum.ContextActionPriority.Medium.Value
 local DEFAULT_MOUSE_LOCK_CURSOR = "rbxasset://textures/MouseLockedCursor.png"
-local CAMERA_OFFSET_DEFAULT = Vector3.new(1.75, 0, 0)
 
 -- Variables
 local bombPassDistance = 10
@@ -71,51 +70,54 @@ local function makeDraggable(frame)
     end)
 end
 
--- Create the Shift Lock icon
-local function createShiftLockIcon()
-    -- Create a ScreenGui to hold the icon
+-- Function to toggle Shift Lock properly
+local function toggleShiftLock()
+    isMouseLocked = not isMouseLocked
+    
+    if isMouseLocked then
+        UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+        UserInputService.MouseIconEnabled = false
+    else
+        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+        UserInputService.MouseIconEnabled = true
+    end
+end
+
+-- Create the Shift Lock mobile button
+local function createShiftLockMobileButton()
     local screenGui = Instance.new("ScreenGui")
-    screenGui.Name = "ShiftLockScreenGui"
+    screenGui.Name = "ShiftLockMobileScreenGui"
     screenGui.ResetOnSpawn = false
     screenGui.Parent = CoreGui
 
-    -- Create the Shift Lock icon button
     local shiftLockButton = Instance.new("ImageButton")
-    shiftLockButton.Name = "ShiftLockButton"
-    shiftLockButton.Size = UDim2.new(0, 50, 0, 50)
-    shiftLockButton.Position = UDim2.new(1, -60, 1, -70) -- Bottom right, with an offset of 20 units up
-    shiftLockButton.AnchorPoint = Vector2.new(1, 1)
-    shiftLockButton.Image = "rbxassetid://4483345998" -- Replace with your icon asset ID
+    shiftLockButton.Name = "ShiftLockMobileButton"
+    shiftLockButton.Size = UDim2.new(0, 100, 0, 100)
+    shiftLockButton.Position = UDim2.new(0.5, -50, 1, -110)
+    shiftLockButton.AnchorPoint = Vector2.new(0.5, 1)
+    shiftLockButton.Image = "rbxassetid://4483345998"
     shiftLockButton.BackgroundTransparency = 1
     shiftLockButton.Parent = screenGui
 
-    -- Toggle Shift Lock on button click
-    shiftLockButton.MouseButton1Click:Connect(function()
-        isMouseLocked = not isMouseLocked
-
-      if isMouseLocked then
-    UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-    UserInputService.MouseIconEnabled = false
-else
-    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-    UserInputService.MouseIconEnabled = true
-end
-    end)
+    shiftLockButton.MouseButton1Click:Connect(toggleShiftLock)
 end
 
 -- Initialize the Shift Lock icon
-createShiftLockIcon()
+if UserInputService.TouchEnabled then
+    createShiftLockMobileButton()
+end
 
 -- Ensure the Shift Lock icon is recreated when the player's character spawns
-LocalPlayer.CharacterAdded:Connect(createShiftLockIcon)
+LocalPlayer.CharacterAdded:Connect(function()
+    if UserInputService.TouchEnabled then
+        createShiftLockMobileButton()
+    end
+end)
 
 -- Bind context actions for Shift Lock toggle
 local function doMouseLockSwitch(name, state, input)
     if state == Enum.UserInputState.Begin then
-        isMouseLocked = not isMouseLocked
-        UserInputService.MouseBehavior = isMouseLocked and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
-        UserInputService.MouseIcon = isMouseLocked and DEFAULT_MOUSE_LOCK_CURSOR or ""
-        LocalPlayer.CameraMode = isMouseLocked and Enum.CameraMode.LockFirstPerson or Enum.CameraMode.Classic
+        toggleShiftLock()
         return Enum.ContextActionResult.Sink
     end
     return Enum.ContextActionResult.Pass
