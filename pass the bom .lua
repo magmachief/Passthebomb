@@ -96,9 +96,11 @@ local function createShiftLockIcon()
         if isMouseLocked then
             UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
             UserInputService.MouseIcon = DEFAULT_MOUSE_LOCK_CURSOR
+            LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
         else
             UserInputService.MouseBehavior = Enum.MouseBehavior.Default
             UserInputService.MouseIcon = ""
+            LocalPlayer.CameraMode = Enum.CameraMode.Classic
         end
     end)
 end
@@ -115,6 +117,7 @@ local function doMouseLockSwitch(name, state, input)
         isMouseLocked = not isMouseLocked
         UserInputService.MouseBehavior = isMouseLocked and Enum.MouseBehavior.LockCenter or Enum.MouseBehavior.Default
         UserInputService.MouseIcon = isMouseLocked and DEFAULT_MOUSE_LOCK_CURSOR or ""
+        LocalPlayer.CameraMode = isMouseLocked and Enum.CameraMode.LockFirstPerson or Enum.CameraMode.Classic
         return Enum.ContextActionResult.Sink
     end
     return Enum.ContextActionResult.Pass
