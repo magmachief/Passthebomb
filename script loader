@@ -1,1 +1,27 @@
-loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Passthebomb/refs/heads/main/pass%20the%20bom%20.lua"))()
+-- This script should be placed in a LocalScript or ServerScript in StarterPlayerScripts or StarterGui
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+
+local function findBombTimer()
+    local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+    local bomb = character:FindFirstChild("Bomb") or character:WaitForChild("Bomb", 10)
+    
+    if bomb then
+        local timer = bomb:FindFirstChild("Timer") or bomb:FindFirstChild("Countdown")
+        
+        if timer then
+            print("Bomb found: " .. bomb.Name)
+            timer:GetPropertyChangedSignal("Value"):Connect(function()
+                print("Time left: " .. timer.Value)
+            end)
+        else
+            warn("Timer not found on the Bomb")
+        end
+    else
+        warn("Bomb not found in the character")
+    end
+end
+
+LocalPlayer.CharacterAdded:Connect(findBombTimer)
+findBombTimer()  -- Call function immediately in case the player is already spawned
