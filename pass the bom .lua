@@ -6,7 +6,14 @@ local ContextActionService = game:GetService("ContextActionService")
 local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
+local bomb = script.Parent
+local timer = bomb:FindFirstChild("Timer") or bomb:FindFirstChild("Countdown")
 
+if timer then
+    timer:GetPropertyChangedSignal("Value"):Connect(function()
+        print("Time left: " .. timer.Value)
+    end)
+end
 -- Constants
 local CONTEXT_ACTION_NAME = "MouseLockSwitchAction"
 local MOUSELOCK_ACTION_PRIORITY = Enum.ContextActionPriority.Medium.Value
