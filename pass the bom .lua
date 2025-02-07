@@ -223,46 +223,12 @@ local function autoPassBomb()
     end)
 end
 
--- Function to hook the bomb timer
-local function hookBombTimer()
-    local function tryToFindBomb()
-        local Bomb = LocalPlayer.Backpack:FindFirstChild("Bomb")
-        if Bomb then
-            return Bomb
-        else
-            for _, item in pairs(LocalPlayer.Backpack:GetChildren()) do
-                if item.Name:lower():find("bomb") then
-                    return item
-                end
-            end
-        end
-        return nil
-    end
-
-    local Bomb = tryToFindBomb()
-    if Bomb then
-        print("Bomb found: " .. Bomb.Name)
-        local Timer = Bomb:FindFirstChild("Timer") or Bomb:FindFirstChild("Countdown") -- Adjust the name based on the actual game implementation
-        if Timer then
-            Timer:GetPropertyChangedSignal("Value"):Connect(function()
-                print("Time left: " .. Timer.Value)
-                -- You can also update a UI element here to display the remaining time
-            end)
-        else
-            warn("Timer not found on the Bomb")
-        end
-    else
-        warn("Bomb not found in the backpack")
-    end
-end
-
 --========================--
 --  APPLY FEATURES ON RESPAWN --
 --========================--
 LocalPlayer.CharacterAdded:Connect(function()
     if AntiSlipperyEnabled then applyAntiSlippery(true) end
     if RemoveHitboxEnabled then applyRemoveHitbox(true) end
-    hookBombTimer() -- Hook the bomb timer on respawn
 end)
 
 --========================--
