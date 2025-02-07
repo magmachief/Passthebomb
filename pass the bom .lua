@@ -326,8 +326,7 @@ end
 -- Rotate away from the bomb if a player with a bomb is near
 RunService.RenderStepped:Connect(function()
     if isMouseLocked then
-        //faceAwayFromBomb()
-            print('hi')
+        faceAwayFromBomb()
     end
 end)
 
