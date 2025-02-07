@@ -93,15 +93,13 @@ local function createShiftLockIcon()
     shiftLockButton.MouseButton1Click:Connect(function()
         isMouseLocked = not isMouseLocked
 
-        if isMouseLocked then
-            UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
-            UserInputService.MouseIcon = DEFAULT_MOUSE_LOCK_CURSOR
-            LocalPlayer.CameraMode = Enum.CameraMode.LockFirstPerson
-        else
-            UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-            UserInputService.MouseIcon = ""
-            LocalPlayer.CameraMode = Enum.CameraMode.Classic
-        end
+      if isMouseLocked then
+    UserInputService.MouseBehavior = Enum.MouseBehavior.LockCenter
+    UserInputService.MouseIconEnabled = false
+else
+    UserInputService.MouseBehavior = Enum.MouseBehavior.Default
+    UserInputService.MouseIconEnabled = true
+end
     end)
 end
 
