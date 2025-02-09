@@ -124,7 +124,9 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
--- Function to move or rotate the character to look more natural during bomb passing
+local TweenService = game:GetService("TweenService")
+local LocalPlayer = game:GetService("Players").LocalPlayer
+
 local function rotateCharacterTowardsTarget(targetPosition)
     local character = LocalPlayer.Character
     if not character then return end
@@ -132,15 +134,19 @@ local function rotateCharacterTowardsTarget(targetPosition)
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then return end
 
-    -- Calculate direction to target
-    local direction = (targetPosition - humanoidRootPart.Position).unit
-    local lookAt = CFrame.lookAt(humanoidRootPart.Position, humanoidRootPart.Position + direction)
+    -- Get current position and movement direction
+    local currentPosition = humanoidRootPart.Position
+    local direction = (targetPosition - currentPosition).unit
+
+    -- Preserve current position while changing only orientation
+    local newCFrame = CFrame.fromMatrix(currentPosition, direction, Vector3.new(0, 1, 0)) 
 
     -- Use TweenService for smooth rotation
     local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = lookAt})
+    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = newCFrame})
     tween:Play()
 end
+
 -- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enabled)
     if enabled then
