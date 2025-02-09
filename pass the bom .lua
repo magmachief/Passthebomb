@@ -226,7 +226,6 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
-
 -- Function to rotate character towards a target position smoothly
 local function rotateCharacterTowards(targetPosition)
     local character = LocalPlayer.Character
@@ -297,6 +296,10 @@ local function autoPassBomb()
         local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
         if Bomb then
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
+            if not BombEvent then
+                print("No BombEvent found")
+                return
+            end
             local closestPlayer = getClosestPlayer()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
@@ -306,7 +309,11 @@ local function autoPassBomb()
                     -- Fire the remote event to pass the bomb
                     BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("HumanoidRootPart"))
                 end
+            else
+                print("No closest player found or they don't have a character")
             end
+        else
+            print("No Bomb found in character")
         end
     end)
 end
