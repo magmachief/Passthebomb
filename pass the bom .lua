@@ -8,14 +8,13 @@ shiftlockk.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 shiftlockk.ResetOnSpawn = false
 
 -- Position the LockButton where the jump button would be on Roblox mobile
-local defaultPosition = UDim2.new(1, -50, 1, -50) -- Adjust as needed
 LockButton.Name = "LockButton"
 LockButton.Parent = shiftlockk
 LockButton.AnchorPoint = Vector2.new(1, 1)
 LockButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 LockButton.BackgroundTransparency = 1.000
 LockButton.BorderColor3 = Color3.fromRGB(27, 42, 53)
-LockButton.Position = defaultPosition
+LockButton.Position = UDim2.new(1, -50, 1, -50)  -- Adjust this position as needed
 LockButton.Size = UDim2.new(0, 60, 0, 60)
 LockButton.ZIndex = 3
 LockButton.Image = "rbxassetid://530406505"
@@ -37,26 +36,26 @@ btnIcon.ImageColor3 = Color3.fromRGB(0, 0, 0)
 btnIcon.ScaleType = Enum.ScaleType.Fit
 btnIcon.SliceCenter = Rect.new(-160, 0, 100, 0)
 
-local UserInputService = game:GetService("UserInputService")
-local dragging = false
-local isDraggable = false
-
-local function DragThingy(ui)
-    if not ui then return end
+local function DragThingy(ui, dragui)
+    if not dragui then dragui = ui end
+    local UserInputService = game:GetService("UserInputService")
     
-    local dragInput, dragStart, startPos
+    local dragging
+    local dragInput
+    local dragStart
+    local startPos
     
     local function update(input)
-        if not dragging then return end
         local delta = input.Position - dragStart
         ui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
     
-    ui.InputBegan:Connect(function(input)
-        if isDraggable and (input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch) then
+    dragui.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = ui.Position
+            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -65,14 +64,14 @@ local function DragThingy(ui)
         end
     end)
     
-    ui.InputChanged:Connect(function(input)
-        if isDraggable and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+    dragui.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
     
     UserInputService.InputChanged:Connect(function(input)
-        if isDraggable and input == dragInput then
+        if input == dragInput and dragging then
             update(input)
         end
     end)
@@ -80,28 +79,78 @@ end
 
 DragThingy(LockButton)
 
+local function YDYMLAX_fake_script()
+    local script = Instance.new('LocalScript', LockButton)
+
+    local Input = game:GetService("UserInputService")
+    local V = false
+
+    local main = script.Parent
+
+    main.MouseButton1Click:Connect(function()
+        V = not V
+        main.btnIcon.ImageColor3 = V and Color3.fromRGB(0, 170, 255) or Color3.fromRGB(0, 0, 0)
+        if V then
+            ForceShiftLock()
+        else
+            EndForceShiftLock()
+        end
+    end)
+
+    local g = nil
+    local GameSettings = UserSettings():GetService("UserGameSettings")
+    local J = nil
+
+    function ForceShiftLock()
+        local i, k = pcall(function()
+            return GameSettings.RotationType
+        end)
+        _ = i
+        g = k
+        J = game:GetService("RunService").RenderStepped:Connect(function()
+            pcall(function()
+                GameSettings.RotationType = Enum.RotationType.CameraRelative
+            end)
+        end)
+    end
+
+    function EndForceShiftLock()
+        if J then
+            pcall(function()
+                GameSettings.RotationType = g or Enum.RotationType.MovementRelative
+            end)
+            J:Disconnect()
+        end
+    end
+end
+coroutine.wrap(YDYMLAX_fake_script)()
+
+-- Double-tap functionality
 local lastTapTime = 0
 local doubleTapTime = 0.5 -- seconds
+local isDraggable = true
 
 LockButton.MouseButton1Click:Connect(function()
     local currentTime = tick()
     if currentTime - lastTapTime <= doubleTapTime then
         isDraggable = not isDraggable
-        if not isDraggable then
-            LockButton.Position = defaultPosition -- Reset position
+        if isDraggable then
+            DragThingy(LockButton)
+        else
+            DragThingy(nil)
         end
     end
     lastTapTime = currentTime
 end)
 
 --// Services
-local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local CoreGui = game:GetService("CoreGui")
 local Camera = game.Workspace.CurrentCamera
+
 local LocalPlayer = Players.LocalPlayer
 
 -- Variables
@@ -118,6 +167,49 @@ local uiThemes = {
     ["Red"] = { Background = Color3.fromRGB(255, 0, 0), Text = Color3.fromRGB(255, 255, 255) },
 }
 
+-- Function to make a UI element draggable
+local function makeDraggable(frame)
+    if not frame then
+        warn("Frame is nil. Cannot make it draggable.")
+        return
+    end
+
+    local dragging = false
+    local dragInput, mousePos, framePos
+
+    frame.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then
+            dragging = true
+            mousePos = input.Position
+            framePos = frame.Position
+
+            input.Changed:Connect(function()
+                if input.UserInputState == Enum.UserInputState.End then
+                    dragging = false
+                end
+            end)
+        end
+    end)
+
+    frame.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            dragInput = input
+        end
+    end)
+
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local delta = input.Position - mousePos
+            frame.Position = UDim2.new(
+                framePos.X.Scale,
+                framePos.X.Offset + delta.X,
+                framePos.Y.Scale,
+                framePos.Y.Offset + delta.Y
+            )
+        end
+    end)
+end
+
 -- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -133,6 +225,7 @@ local function getClosestPlayer()
     end
     return closestPlayer
 end
+
 
 -- Function to rotate character towards a target position smoothly
 local function rotateCharacterTowards(targetPosition)
@@ -209,7 +302,7 @@ local function autoPassBomb()
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                 if (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= bombPassDistance then
                     -- Rotate the character towards the closest player before passing the bomb
-                    rotateCharacterTowards(targetPosition) -- Rotate before passing the bomb
+                    rotateCharacterTowards(targetPosition)
                     -- Fire the remote event to pass the bomb
                     BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("HumanoidRootPart"))
                 end
@@ -265,6 +358,9 @@ end)
 
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
+
+-- Make the OrionLib window draggable (if needed)
+makeDraggable(Window.Container)
 
 -- Automated Tab
 local AutomatedTab = Window:MakeTab({
