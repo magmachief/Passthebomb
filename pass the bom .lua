@@ -24,6 +24,9 @@ function IsPremium(player)
     return player:GetAttribute("Premium") == true
 end
 
+-- Ensure premium status is granted upon script start
+GrantPremiumToAll()
+
 -- Shift Lock System
 local shiftlockk = Instance.new("ScreenGui")
 local LockButton = Instance.new("ImageButton")
@@ -126,9 +129,48 @@ local function autoPassBomb()
     end)
 end
 
+-- Anti Slippery Implementation
+local function applyAntiSlippery(enable)
+    if enable then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+            end
+        end
+    else
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 0, 0) -- Default properties
+            end
+        end
+    end
+end
+
+-- Remove Hitbox Implementation
+local function applyRemoveHitbox(enable)
+    if enable then
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name == "Hitbox" then
+                part.Transparency = 1
+                part.CanCollide = false
+            end
+        end
+    else
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name == "Hitbox" then
+                part.Transparency = 0
+                part.CanCollide = true
+            end
+        end
+    end
+end
+
 -- UI Elements
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
+
+-- Debug print to see if the player is recognized as premium
+print("Is LocalPlayer premium? " .. tostring(IsPremium(LocalPlayer)))
 
 if IsPremium(LocalPlayer) then
     local AutomatedTab = Window:MakeTab({
