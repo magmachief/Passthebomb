@@ -146,6 +146,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local CoreGui = game:GetService("CoreGui")
+local Camera = game.Workspace.CurrentCamera
 
 local LocalPlayer = Players.LocalPlayer
 
@@ -156,13 +157,13 @@ local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
+local isFlickMode = true -- Flick mode enabled by default
+local uiTheme = "Dark" -- Default UI theme
 local uiThemes = {
-    ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
-    ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
-    ["Red"] = { Background = Color3.new(1, 0, 0), Text = Color3.new(1, 1, 1) },
+    ["Dark"] = { Background = Color3.fromRGB(0, 0, 0), Text = Color3.fromRGB(255, 255, 255) },
+    ["Light"] = { Background = Color3.fromRGB(255, 255, 255), Text = Color3.fromRGB(0, 0, 0) },
+    ["Red"] = { Background = Color3.fromRGB(255, 0, 0), Text = Color3.fromRGB(255, 255, 255) },
 }
-local isMouseLocked = false
-local boundKeys = {Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift} -- defaults
 
 -- Function to make a UI element draggable
 local function makeDraggable(frame)
@@ -207,7 +208,6 @@ local function makeDraggable(frame)
     end)
 end
 
-
 -- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -222,6 +222,41 @@ local function getClosestPlayer()
         end
     end
     return closestPlayer
+end
+
+local function rotateCharacter()
+    local character = LocalPlayer.Character
+    if not character then return end
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    -- Rotate the character slightly
+    humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0) -- Adjust angle as needed
+
+    -- Add a slight delay to control rotation speed
+    wait(0.2) -- Adjust delay as needed
+end
+
+-- Function to smoothly rotate the camera towards the target
+local function flickToTarget(targetPosition)
+    if not targetPosition then return end
+
+    local startCFrame = Camera.CFrame
+    local endCFrame = CFrame.new(Camera.CFrame.Position, targetPosition) -- Look at target
+
+    -- Animate the flick effect
+    for i = 0, 1, flickSpeed do
+        Camera.CFrame = startCFrame:Lerp(endCFrame, i)
+        RunService.RenderStepped:Wait()
+    end
+
+    -- Reset camera smoothly after flick
+    wait(0.2)
+    for i = 0, 1, flickSpeed do
+        Camera.CFrame = endCFrame:Lerp(startCFrame, i)
+        RunService.RenderStepped:Wait()
+    end
 end
 
 -- Function to get the closest player with a bomb
@@ -297,6 +332,11 @@ local function autoPassBomb()
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                 if (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= bombPassDistance then
                     -- Fire the remote event to pass the bomb
+                    if isFlickMode then
+                        flickToTarget(targetPosition)
+                    else
+                        rotateCharacter()
+                    end
                     BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
                 end
             end
@@ -317,6 +357,34 @@ end)
 LocalPlayer.CharacterAdded:Connect(function()
     if AntiSlipperyEnabled then applyAntiSlippery(true) end
     if RemoveHitboxEnabled then applyRemoveHitbox(true) end
+end)
+
+--========================--
+--  CUSTOMIZABLE UI COLORS --
+--========================--
+
+-- Function to update UI colors
+local function updateUITheme(themeName)
+    if uiThemes[themeName] then
+        local theme = uiThemes[themeName]
+        -- Update UI colors (example: if you have buttons, change their color)
+        print("UI Theme Updated to:", themeName)
+    else
+        warn("Theme not found:", themeName)
+    end
+end
+
+--========================--
+-- MOBILE-FRIENDLY GESTURE SUPPORT --
+--========================--
+UserInputService.TouchSwipe:Connect(function(direction)
+    if direction == Enum.SwipeDirection.Left then
+        isFlickMode = false -- Switch to Rotate Mode
+        print("Switched to Rotate Mode")
+    elseif direction == Enum.SwipeDirection.Right then
+        isFlickMode = true -- Switch to Flick Mode
+        print("Switched to Flick Mode")
+    end
 end)
 
 --========================--
@@ -395,12 +463,17 @@ AutomatedTab:AddDropdown({
     Default = "Dark",
     Options = { "Dark", "Light", "Red" },
     Callback = function(themeName)
-        local theme = uiThemes[themeName]
-        if theme then
-            -- Apply theme to UI elements here if needed
-        else
-            warn("Theme not found:", themeName)
-        end
+        uiTheme = themeName
+        updateUITheme(themeName)
+    end
+})
+
+AutomatedTab:AddDropdown({
+    Name = "Bomb Pass Mode",
+    Default = "rotate",
+    Options = { "rotate", "flick" },
+    Callback = function(value)
+        isFlickMode = (value == "flick")
     end
 })
 
@@ -456,23 +529,4 @@ NewFeaturesTab:AddToggle({
         end
     end
 })
-
-NewFeaturesTab:AddToggle({
-    Name = "Invisible Mode",
-    Default = false,
-    Callback = function(value)
-        local character = LocalPlayer.Character
-        if character then
-            for _, part in pairs(character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.Transparency = value and 1 or 0
-                elseif part:IsA("Decal") or part:IsA("Texture") then
-                    part.Transparency = value and 1 or 0
-                end
-            end
-        end
-    end
-})
-
 OrionLib:Init()
-print("Yon Menu Script Loaded with Enhancements")
