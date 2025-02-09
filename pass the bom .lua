@@ -80,15 +80,28 @@ local function YDYMLAX_fake_script()
 	end
 end
 coroutine.wrap(YDYMLAX_fake_script)()
-
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
 local StarterGui = game:GetService("StarterGui")
-
 local LocalPlayer = Players.LocalPlayer
+
+--// Premium System
+local function GrantPremiumToAll()
+    for _, player in ipairs(Players:GetPlayers()) do
+        player:SetAttribute("Premium", true)
+    end
+end
+
+Players.PlayerAdded:Connect(function(player)
+    player:SetAttribute("Premium", true)
+end)
+
+function IsPremium(player)
+    return player:GetAttribute("Premium") == true
+end
 
 --// Variables
 local bombPassDistance = 10
@@ -97,7 +110,6 @@ local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
-local lastTargetPosition = nil -- Cached position for pathfinding
 local uiThemes = {
     ["Dark"] = { Background = Color3.new(0, 0, 0), Text = Color3.new(1, 1, 1) },
     ["Light"] = { Background = Color3.new(1, 1, 1), Text = Color3.new(0, 0, 0) },
@@ -113,7 +125,7 @@ local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
     for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and not player.Character:FindFirstChild("Bomb") then
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
@@ -124,9 +136,7 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
-local TweenService = game:GetService("TweenService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
-
+-- Rotate Character Towards Target
 local function rotateCharacterTowardsTarget(targetPosition)
     local character = LocalPlayer.Character
     if not character then return end
@@ -134,49 +144,34 @@ local function rotateCharacterTowardsTarget(targetPosition)
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then return end
 
-    -- Get current position and movement direction
-    local currentPosition = humanoidRootPart.Position
-    local direction = (targetPosition - currentPosition).unit
+    local direction = (targetPosition - humanoidRootPart.Position).unit
+    local newCFrame = CFrame.fromMatrix(humanoidRootPart.Position, direction, Vector3.new(0, 1, 0))
 
-    -- Preserve current position while changing only orientation
-    local newCFrame = CFrame.fromMatrix(currentPosition, direction, Vector3.new(0, 1, 0)) 
-
-    -- Use TweenService for smooth rotation
-    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = newCFrame})
+    local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(0.3, Enum.EasingStyle.Linear), {CFrame = newCFrame})
     tween:Play()
 end
 
--- Anti-Slippery: Apply or reset physical properties
+-- Anti-Slippery Function
 local function applyAntiSlippery(enabled)
-    if enabled then
-        spawn(function()
-            while AntiSlipperyEnabled do
-                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-                for _, part in pairs(character:GetDescendants()) do
-                    if part:IsA("BasePart") then
-                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                    end
+    spawn(function()
+        repeat
+            local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.CustomPhysicalProperties = enabled and PhysicalProperties.new(0.7, 0.3, 0.5) or PhysicalProperties.new(0.5, 0.3, 0.5)
                 end
-                wait(0.1)
             end
-        end)
-    else
-        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
-        for _, part in pairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
-            end
-        end
-    end
+            wait(0.1)
+        until not AntiSlipperyEnabled
+    end)
 end
 
--- Remove Hitbox: Destroy collision parts
+-- Remove Hitbox Function
 local function applyRemoveHitbox(enabled)
     if not enabled then return end
     local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
     local function removeCollisionPart(character)
-        for destructionIteration = 1, 100 do
+        for i = 1, 100 do
             wait()
             pcall(function()
                 local collisionPart = character:FindFirstChild("CollisionPart")
@@ -188,13 +183,10 @@ local function applyRemoveHitbox(enabled)
     LocalPlayer.CharacterAdded:Connect(removeCollisionPart)
 end
 
+-- Auto Pass Bomb Function
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
-        if LocalPlayer.Backpack:FindFirstChild("Bomb") then
-            LocalPlayer.Backpack:FindFirstChild("Bomb").Parent = LocalPlayer.Character
-        end
-
         local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
         if Bomb then
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
@@ -202,19 +194,15 @@ local function autoPassBomb()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                 if (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= bombPassDistance then
-                    -- Rotate character slightly toward the target
                     rotateCharacterTowardsTarget(targetPosition)
-
-                    -- Fire the remote event to pass the bomb
                     BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
                 end
             end
         end
     end)
 end
---========================--
---  APPLY FEATURES ON RESPAWN --
---========================--
+
+-- Apply Features On Respawn
 LocalPlayer.CharacterAdded:Connect(function()
     if AntiSlipperyEnabled then applyAntiSlippery(true) end
     if RemoveHitboxEnabled then applyRemoveHitbox(true) end
@@ -228,35 +216,35 @@ local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magm
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
 -- Automated Tab
-AutomatedTab = Window:MakeTab({
-    Name = "Automated",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = IsPremium(LocalPlayer)  -- Only Premium users can access this
-})
+if IsPremium(LocalPlayer) then
+    local AutomatedTab = Window:MakeTab({
+        Name = "Automated",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = true
+    })
 
-AutomatedTab:AddToggle({
-    Name = "Anti Slippery",
-    Default = AntiSlipperyEnabled,
-    Callback = function(value)
-        AntiSlipperyEnabled = value
-        applyAntiSlippery(value)
-    end
-})
+    AutomatedTab:AddToggle({
+        Name = "Anti Slippery",
+        Default = AntiSlipperyEnabled,
+        Callback = function(value)
+            AntiSlipperyEnabled = value
+            applyAntiSlippery(value)
+        end
+    })
 
-AutomatedTab:AddToggle({
-    Name = "Remove Hitbox",
-    Default = RemoveHitboxEnabled,
-    Callback = function(value)
-        RemoveHitboxEnabled = value
-        applyRemoveHitbox(value)
-    end
-})
+    AutomatedTab:AddToggle({
+        Name = "Remove Hitbox",
+        Default = RemoveHitboxEnabled,
+        Callback = function(value)
+            RemoveHitboxEnabled = value
+            applyRemoveHitbox(value)
+        end
+    })
 
-AutomatedTab:AddToggle({
-    Name = "Auto Pass Bomb",
-    Default = AutoPassEnabled,
-    Callback = function(value)
-        if IsPremium(LocalPlayer) then  -- Only allow if player is Premium
+    AutomatedTab:AddToggle({
+        Name = "Auto Pass Bomb",
+        Default = AutoPassEnabled,
+        Callback = function(value)
             AutoPassEnabled = value
             if AutoPassEnabled then
                 autoPassConnection = RunService.Stepped:Connect(autoPassBomb)
@@ -266,33 +254,29 @@ AutomatedTab:AddToggle({
                     autoPassConnection = nil
                 end
             end
-        else
-            print("You need Premium to use this feature!")
         end
-    end
-})
+    })
 
-AutomatedTab:AddSlider({
-    Name = "Bomb Pass Distance",
-    Min = 5,
-    Max = 30,
-    Default = bombPassDistance,
-    Increment = 1,
-    Callback = function(value)
-        bombPassDistance = value
-    end
-})
+    AutomatedTab:AddSlider({
+        Name = "Bomb Pass Distance",
+        Min = 5,
+        Max = 30,
+        Default = bombPassDistance,
+        Increment = 1,
+        Callback = function(value)
+            bombPassDistance = value
+        end
+    })
+else
+    Window:MakeTab({
+        Name = "Premium Locked",
+        Icon = "rbxassetid://4483345998",
+        PremiumOnly = false
+    }):AddLabel("⚠️ This feature requires Premium.")
+end
 
-AutomatedTab:AddDropdown({
-    Name = "Pathfinding Speed",
-    Default = "16",
-    Options = {"12", "16", "20"},
-    Callback = function(value)
-        pathfindingSpeed = tonumber(value)
-    end
-})
-
-AutomatedTab:AddDropdown({
+-- UI Theme Selector
+Window:AddDropdown({
     Name = "UI Theme",
     Default = "Dark",
     Options = { "Dark", "Light", "Red" },
@@ -307,4 +291,4 @@ AutomatedTab:AddDropdown({
 })
 
 OrionLib:Init()
-print("Yon Menu Script Loaded with Adjustments")
+print("Yon Menu Script Loaded with Premium Adjustments 🚀")
