@@ -228,10 +228,10 @@ local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magm
 local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
 -- Automated Tab
-local AutomatedTab = Window:MakeTab({
+AutomatedTab = Window:MakeTab({
     Name = "Automated",
     Icon = "rbxassetid://4483345998",
-    PremiumOnly = True
+    PremiumOnly = IsPremium(LocalPlayer)  -- Only Premium users can access this
 })
 
 AutomatedTab:AddToggle({
@@ -256,14 +256,18 @@ AutomatedTab:AddToggle({
     Name = "Auto Pass Bomb",
     Default = AutoPassEnabled,
     Callback = function(value)
-        AutoPassEnabled = value
-        if AutoPassEnabled then
-            autoPassConnection = RunService.Stepped:Connect(autoPassBomb)
-        else
-            if autoPassConnection then
-                autoPassConnection:Disconnect()
-                autoPassConnection = nil
+        if IsPremium(LocalPlayer) then  -- Only allow if player is Premium
+            AutoPassEnabled = value
+            if AutoPassEnabled then
+                autoPassConnection = RunService.Stepped:Connect(autoPassBomb)
+            else
+                if autoPassConnection then
+                    autoPassConnection:Disconnect()
+                    autoPassConnection = nil
+                end
             end
+        else
+            print("You need Premium to use this feature!")
         end
     end
 })
