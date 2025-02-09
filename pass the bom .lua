@@ -65,7 +65,7 @@ local function DragThingy(ui, dragui)
     end)
     
     dragui.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType.Touch then
             dragInput = input
         end
     end)
@@ -474,14 +474,13 @@ local ConsoleTab = Window:MakeTab({
     PremiumOnly = false
 })
 
-ConsoleTab:AddParagraph("Logs", table.concat(consoleLogs, "\n"))
+local consoleParagraph = ConsoleTab:AddParagraph("Logs", "")
 
 -- Refresh logs every second
 spawn(function()
     while true do
         wait(1)
-        ConsoleTab:Clear()
-        ConsoleTab:AddParagraph("Logs", table.concat(consoleLogs, "\n"))
+        consoleParagraph:Set(table.concat(consoleLogs, "\n"))
     end
 end)
 
