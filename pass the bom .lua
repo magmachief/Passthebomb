@@ -444,4 +444,45 @@ AutomatedTab:AddDropdown({
     end
 })
 
+-- Custom Console Tab
+local consoleLogs = {}
+local function addLog(log)
+    table.insert(consoleLogs, log)
+    if #consoleLogs > 100 then
+        table.remove(consoleLogs, 1)  -- Keep the log size manageable
+    end
+end
+
+-- Function to capture console output
+local function captureConsoleOutput()
+    local originalPrint = print
+    print = function(...)
+        local message = ""
+        for _, v in ipairs({...}) do
+            message = message .. tostring(v) .. " "
+        end
+        addLog(message)
+        originalPrint(...)
+    end
+end
+
+captureConsoleOutput()
+
+local ConsoleTab = Window:MakeTab({
+    Name = "Console",
+    Icon = "rbxassetid://4483345998",
+    PremiumOnly = false
+})
+
+ConsoleTab:AddParagraph("Logs", table.concat(consoleLogs, "\n"))
+
+-- Refresh logs every second
+spawn(function()
+    while true do
+        wait(1)
+        ConsoleTab:Clear()
+        ConsoleTab:AddParagraph("Logs", table.concat(consoleLogs, "\n"))
+    end
+end)
+
 OrionLib:Init()
