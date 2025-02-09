@@ -135,6 +135,8 @@ LockButton.MouseButton1Click:Connect(function()
         isDraggable = not isDraggable
         if isDraggable then
             DragThingy(LockButton)
+        else
+            DragThingy(nil)
         end
     end
     lastTapTime = currentTime
@@ -246,15 +248,8 @@ local function flickToTarget(targetPosition)
     local endCFrame = CFrame.new(Camera.CFrame.Position, targetPosition) -- Look at target
 
     -- Animate the flick effect
-    for i = 0, 1, flickSpeed do
+    for i = 0, 1, 0.2 do
         Camera.CFrame = startCFrame:Lerp(endCFrame, i)
-        RunService.RenderStepped:Wait()
-    end
-
-    -- Reset camera smoothly after flick
-    wait(0.2)
-    for i = 0, 1, flickSpeed do
-        Camera.CFrame = endCFrame:Lerp(startCFrame, i)
         RunService.RenderStepped:Wait()
     end
 end
@@ -337,7 +332,7 @@ local function autoPassBomb()
                     else
                         rotateCharacter()
                     end
-                    BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                    BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("HumanoidRootPart"))
                 end
             end
         end
@@ -477,59 +472,4 @@ AutomatedTab:AddDropdown({
     end
 })
 
--- New Features Tab
-local NewFeaturesTab = Window:MakeTab({
-    Name = "New Features",
-    Icon = "rbxassetid://4483345998",
-    PremiumOnly = false
-})
-
-NewFeaturesTab:AddLabel("New exciting features coming soon!")
-
-NewFeaturesTab:AddButton({
-    Name = "Teleport to Random Player",
-    Callback = function()
-        local closestPlayer = getClosestPlayer()
-        if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            LocalPlayer.Character.HumanoidRootPart.CFrame = closestPlayer.Character.HumanoidRootPart.CFrame
-        end
-    end
-})
-
-NewFeaturesTab:AddSlider({
-    Name = "Character Speed",
-    Min = 16,
-    Max = 100,
-    Default = 16,
-    Increment = 1,
-    Callback = function(value)
-        local humanoid = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid")
-        if humanoid then
-            humanoid.WalkSpeed = value
-        end
-    end
-})
-
-NewFeaturesTab:AddToggle({
-    Name = "God Mode",
-    Default = false,
-    Callback = function(value)
-        if value then
-            local character = LocalPlayer.Character
-            if character then
-                character.Humanoid.MaxHealth = math.huge
-                character.Humanoid.Health = math.huge
-            end
-        else
-            local character = LocalPlayer.Character
-            if character then
-                character.Humanoid.MaxHealth = 100
-                character.Humanoid.Health = 100
-            end
-        end
-    end
-})
-
-
 OrionLib:Init()
-print("Yon Menu Script Loaded with Adjustments")
