@@ -7,13 +7,14 @@ shiftlockk.Parent = game.CoreGui
 shiftlockk.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 shiftlockk.ResetOnSpawn = false
 
+-- Position the LockButton where the jump button would be on Roblox mobile
 LockButton.Name = "LockButton"
 LockButton.Parent = shiftlockk
-LockButton.AnchorPoint = Vector2.new(0.5, 0.5)
+LockButton.AnchorPoint = Vector2.new(1, 1)
 LockButton.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
 LockButton.BackgroundTransparency = 1.000
 LockButton.BorderColor3 = Color3.fromRGB(27, 42, 53)
-LockButton.Position = UDim2.new(0.785, 0, 0.865, 0)
+LockButton.Position = UDim2.new(1, -50, 1, -50)  -- Adjust this position as needed
 LockButton.Size = UDim2.new(0, 60, 0, 60)
 LockButton.ZIndex = 3
 LockButton.Image = "rbxassetid://530406505"
@@ -159,7 +160,6 @@ local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 local autoPassConnection = nil
 local pathfindingSpeed = 16 -- Default speed
-local isFlickMode = true -- Flick mode enabled by default
 local uiTheme = "Dark" -- Default UI theme
 local uiThemes = {
     ["Dark"] = { Background = Color3.fromRGB(0, 0, 0), Text = Color3.fromRGB(255, 255, 255) },
@@ -226,48 +226,23 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
-local function rotateCharacter()
+-- Function to rotate character towards a target position
+local function rotateCharacterTowards(targetPosition)
     local character = LocalPlayer.Character
     if not character then return end
 
     local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
     if not humanoidRootPart then return end
 
-    -- Rotate the character slightly
-    humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0) -- Adjust angle as needed
+    -- Calculate the direction to look at
+    local direction = (targetPosition - humanoidRootPart.Position).unit
+    local lookAt = CFrame.lookAt(humanoidRootPart.Position, humanoidRootPart.Position + direction)
 
-    -- Add a slight delay to control rotation speed
-    wait(0.2) -- Adjust delay as needed
-end
-
--- Function to smoothly rotate the camera towards the target
-local function flickToTarget(targetPosition)
-    if not targetPosition then return end
-
-    local startCFrame = Camera.CFrame
-    local endCFrame = CFrame.new(Camera.CFrame.Position, targetPosition) -- Look at target
-
-    -- Animate the flick effect
-    for i = 0, 1, 0.2 do
-        Camera.CFrame = startCFrame:Lerp(endCFrame, i)
+    -- Smoothly rotate the character towards the target
+    for i = 0, 1, 0.1 do
+        humanoidRootPart.CFrame = humanoidRootPart.CFrame:Lerp(lookAt, i)
         RunService.RenderStepped:Wait()
     end
-end
-
--- Function to get the closest player with a bomb
-local function getClosestPlayerWithBomb()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChild("Bomb") then
-            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
-            if distance < shortestDistance then
-                shortestDistance = distance
-                closestPlayer = player
-            end
-        end
-    end
-    return closestPlayer
 end
 
 -- Anti-Slippery: Apply or reset physical properties
@@ -326,12 +301,9 @@ local function autoPassBomb()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                 if (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).magnitude <= bombPassDistance then
+                    -- Rotate the character towards the closest player before passing the bomb
+                    rotateCharacterTowards(targetPosition)
                     -- Fire the remote event to pass the bomb
-                    if isFlickMode then
-                        flickToTarget(targetPosition)
-                    else
-                        rotateCharacter()
-                    end
                     BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("HumanoidRootPart"))
                 end
             end
@@ -374,11 +346,9 @@ end
 --========================--
 UserInputService.TouchSwipe:Connect(function(direction)
     if direction == Enum.SwipeDirection.Left then
-        isFlickMode = false -- Switch to Rotate Mode
-        print("Switched to Rotate Mode")
+        print("Swiped left")
     elseif direction == Enum.SwipeDirection.Right then
-        isFlickMode = true -- Switch to Flick Mode
-        print("Switched to Flick Mode")
+        print("Swiped right")
     end
 end)
 
@@ -460,15 +430,6 @@ AutomatedTab:AddDropdown({
     Callback = function(themeName)
         uiTheme = themeName
         updateUITheme(themeName)
-    end
-})
-
-AutomatedTab:AddDropdown({
-    Name = "Bomb Pass Mode",
-    Default = "rotate",
-    Options = { "rotate", "flick" },
-    Callback = function(value)
-        isFlickMode = (value == "flick")
     end
 })
 
