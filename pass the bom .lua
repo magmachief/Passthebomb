@@ -240,7 +240,7 @@ local function rotateCharacterTowards(targetPosition)
 
     -- Use TweenService for smooth rotation
     local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
-    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = lookAt})
+    local tween = game:GetService("TweenService"):Create(humanoidRootPart, tweenInfo, {CFrame = lookAt})
     tween:Play()
 end
 
@@ -295,6 +295,7 @@ local function autoPassBomb()
 
         local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
         if Bomb then
+            print("Bomb found in character")
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
             if not BombEvent then
                 print("No BombEvent found")
@@ -307,7 +308,10 @@ local function autoPassBomb()
                     -- Rotate the character towards the closest player before passing the bomb
                     rotateCharacterTowards(targetPosition)
                     -- Fire the remote event to pass the bomb
+                    print("Passing bomb to:", closestPlayer.Name)
                     BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("HumanoidRootPart"))
+                else
+                    print("Closest player is out of range")
                 end
             else
                 print("No closest player found or they don't have a character")
