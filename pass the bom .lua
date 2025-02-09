@@ -93,12 +93,11 @@ LockButton.MouseButton1Click:Connect(function()
     end
     lastTapTime = currentTime
 end)
-a
+
 --// Services
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local ContextActionService = game:GetService("ContextActionService")
 local CoreGui = game:GetService("CoreGui")
@@ -118,7 +117,6 @@ local uiThemes = {
     ["Light"] = { Background = Color3.fromRGB(255, 255, 255), Text = Color3.fromRGB(0, 0, 0) },
     ["Red"] = { Background = Color3.fromRGB(255, 0, 0), Text = Color3.fromRGB(255, 255, 255) },
 }
-
 
 -- Function to get the closest player
 local function getClosestPlayer()
