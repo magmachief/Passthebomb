@@ -84,6 +84,7 @@ coroutine.wrap(YDYMLAX_fake_script)()
 --// Services
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local PathfindingService = game:GetService("PathfindingService")
 local StarterGui = game:GetService("StarterGui")
 
@@ -133,12 +134,12 @@ local function rotateCharacterTowardsTarget(targetPosition)
 
     -- Calculate direction to target
     local direction = (targetPosition - humanoidRootPart.Position).unit
+    local lookAt = CFrame.lookAt(humanoidRootPart.Position, humanoidRootPart.Position + direction)
 
-    -- Slightly rotate the character to seem active
-    humanoidRootPart.CFrame = humanoidRootPart.CFrame * CFrame.Angles(0, math.rad(10), 0)
-
-    -- Add a slight delay to slow down rotation
-    wait(0.2) -- Adjust delay as needed
+    -- Use TweenService for smooth rotation
+    local tweenInfo = TweenInfo.new(0.3, Enum.EasingStyle.Linear, Enum.EasingDirection.Out)
+    local tween = TweenService:Create(humanoidRootPart, tweenInfo, {CFrame = lookAt})
+    tween:Play()
 end
 -- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enabled)
