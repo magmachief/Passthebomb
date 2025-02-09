@@ -529,4 +529,14 @@ NewFeaturesTab:AddToggle({
         end
     end
 })
-OrionLib:Init()
+
+NewFeaturesTab:AddToggle({
+    Name = "Invisible Mode",
+    Default = false,
+    Callback = function(value)
+        local character = LocalPlayer.Character
+        if character then
+            for _, part in pairs(character:GetDescendants()) do
+                if part:IsA("BasePart") then
+                    part.Transparency = value and 1 or 0
+                elseif part:IsA("Decal") or part:IsA("Texture")
