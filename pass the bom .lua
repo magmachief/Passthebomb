@@ -57,7 +57,7 @@ local function rotateCharacterTowardsTarget(targetPosition)
     tween:Play()
 end
 
--- Auto Pass Bomb Logic
+-- Auto Pass Bomb Logic with Bomb Pass Distance
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
@@ -67,9 +67,14 @@ local function autoPassBomb()
             local closestPlayer = getClosestPlayer()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                rotateCharacterTowardsTarget(targetPosition)
-                -- Fire the remote event to pass the bomb
-                BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                local distance = (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
+
+                -- Only pass the bomb if the target is within the bomb pass distance
+                if distance <= bombPassDistance then
+                    rotateCharacterTowardsTarget(targetPosition)
+                    -- Fire the remote event to pass the bomb
+                    BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
+                end
             end
         end
     end)
