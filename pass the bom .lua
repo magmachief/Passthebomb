@@ -1,9 +1,6 @@
--- Full Orion Library Script with Premium System, Shift Lock, and Extra Features,
--- plus a Bomb Distance slider (range: 5-20 studs, default = 10)
+-- Full Orion Library Script with Premium System, Shift Lock, and Extra Features
 
------------------------------------------------------
--- SERVICES & LOCAL VARIABLES
------------------------------------------------------
+-- Services
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
@@ -12,9 +9,7 @@ local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 
------------------------------------------------------
--- PREMIUM SYSTEM
------------------------------------------------------
+-- Premium System
 local function GrantPremiumToAll()
     for _, player in ipairs(Players:GetPlayers()) do
         player:SetAttribute("Premium", true)
@@ -25,15 +20,14 @@ Players.PlayerAdded:Connect(function(player)
     player:SetAttribute("Premium", true)
 end)
 
-local function IsPremium(player)
+function IsPremium(player)
     return player:GetAttribute("Premium") == true
 end
 
+-- Ensure premium status is granted upon script start
 GrantPremiumToAll()
 
------------------------------------------------------
--- SHIFT LOCK SYSTEM
------------------------------------------------------
+-- Shift Lock System
 local shiftlockk = Instance.new("ScreenGui")
 local LockButton = Instance.new("ImageButton")
 local btnIcon = Instance.new("ImageLabel")
@@ -60,11 +54,13 @@ local function EnableShiftLock()
     local GameSettings = UserSettings():GetService("UserGameSettings")
     local previousRotation = GameSettings.RotationType
     local connection
+
     connection = RunService.RenderStepped:Connect(function()
         pcall(function()
             GameSettings.RotationType = Enum.RotationType.CameraRelative
         end)
     end)
+
     LockButton.MouseButton1Click:Connect(function()
         if connection then
             connection:Disconnect()
@@ -80,17 +76,13 @@ local function EnableShiftLock()
 end
 EnableShiftLock()
 
------------------------------------------------------
--- UTILITY FUNCTIONS
------------------------------------------------------
+-- Utility Functions
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
-    local localHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    if not localHRP then return nil end
-    for _, player in ipairs(Players:GetPlayers()) do
+    for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local distance = (player.Character.HumanoidRootPart.Position - localHRP.Position).Magnitude
+            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
             if distance < shortestDistance then
                 shortestDistance = distance
                 closestPlayer = player
@@ -103,24 +95,24 @@ end
 local function rotateCharacterTowardsTarget(targetPosition)
     local character = LocalPlayer.Character
     if not character then return end
-    local hrp = character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local direction = (targetPosition - hrp.Position).Unit
-    local newCFrame = CFrame.fromMatrix(hrp.Position, direction, Vector3.new(0, 1, 0))
-    local tween = TweenService:Create(hrp, TweenInfo.new(0.3, Enum.EasingStyle.Linear), {CFrame = newCFrame})
+
+    local humanoidRootPart = character:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then return end
+
+    local direction = (targetPosition - humanoidRootPart.Position).unit
+    local newCFrame = CFrame.fromMatrix(humanoidRootPart.Position, direction, Vector3.new(0, 1, 0))
+
+    local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(0.3, Enum.EasingStyle.Linear), {CFrame = newCFrame})
     tween:Play()
 end
 
------------------------------------------------------
--- FEATURE VARIABLES & BOMB DISTANCE SETTING
------------------------------------------------------
-local bombPassDistance = 10  -- Default bomb pass distance (studs)
+-- Features
+local bombPassDistance = 10
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 local autoPassConnection = nil
 
--- Modified autoPassBomb: Only pass bomb if closest player is within bombPassDistance.
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
@@ -128,62 +120,58 @@ local function autoPassBomb()
         if Bomb then
             local BombEvent = Bomb:FindFirstChild("RemoteEvent")
             local closestPlayer = getClosestPlayer()
-            if closestPlayer and closestPlayer.Character and closestPlayer.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                local distance = (targetPosition - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
-                if distance <= bombPassDistance then
-                    rotateCharacterTowardsTarget(targetPosition)
-                    BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
-                end
+                rotateCharacterTowardsTarget(targetPosition)
+                BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
         end
     end)
 end
 
--- Anti Slippery: Change physical properties of character parts.
+-- Anti Slippery Implementation
 local function applyAntiSlippery(enable)
-    if LocalPlayer.Character then
+    if enable then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
-                if enable then
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
-                else
-                    part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 0, 0)
-                end
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+            end
+        end
+    else
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") then
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 0, 0) -- Default properties
             end
         end
     end
 end
 
--- Remove Hitbox: Hide hitbox parts.
+-- Remove Hitbox Implementation
 local function applyRemoveHitbox(enable)
-    if LocalPlayer.Character then
+    if enable then
         for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.Name == "Hitbox" then
-                if enable then
-                    part.Transparency = 1
-                    part.CanCollide = false
-                else
-                    part.Transparency = 0
-                    part.CanCollide = true
-                end
+                part.Transparency = 1
+                part.CanCollide = false
+            end
+        end
+    else
+        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+            if part:IsA("BasePart") and part.Name == "Hitbox" then
+                part.Transparency = 0
+                part.CanCollide = true
             end
         end
     end
 end
 
------------------------------------------------------
--- ORION LIBRARY SETUP (Load from GitHub)
------------------------------------------------------
-local OrionLibSource = "https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"
-local OrionLibLoaded = loadstring(game:HttpGet(OrionLibSource))()
-local Window = OrionLibLoaded:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced", IntroEnabled = true })
+-- UI Elements
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
+local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
+-- Debug print to see if the player is recognized as premium
 print("Is LocalPlayer premium? " .. tostring(IsPremium(LocalPlayer)))
 
------------------------------------------------------
--- UI: AUTOMATED TAB (For Premium Users)
------------------------------------------------------
 if IsPremium(LocalPlayer) then
     local AutomatedTab = Window:MakeTab({
         Name = "Automated",
@@ -224,19 +212,6 @@ if IsPremium(LocalPlayer) then
             end
         end
     })
-
-    -- Bomb Distance Slider: Adjust bomb pass reach (5-20 studs)
-    AutomatedTab:AddSlider({
-        Name = "Bomb Distance",
-        Min = 5,
-        Max = 20,
-        Default = bombPassDistance,
-        Increment = 1,
-        ValueName = " studs",
-        Callback = function(Value)
-            bombPassDistance = Value
-        end
-    })
 else
     Window:MakeTab({
         Name = "Premium Locked",
@@ -245,13 +220,5 @@ else
     }):AddLabel("⚠️ This feature requires Premium.")
 end
 
------------------------------------------------------
--- INITIALIZE UI & NOTIFICATIONS
------------------------------------------------------
-OrionLibLoaded:Init()
-OrionLibLoaded:MakeNotification({
-    Name = "Yon Menu",
-    Content = "Yon Menu Script Loaded with Shift Lock & Premium Features 🚀",
-    Time = 5
-})
-print("Yon Menu Script Loaded with Shift Lock & Premium Features 🚀")
+OrionLib:Init()
+print("Yon Menu Script Loaded with Shift Lock & Premium Features 🚀") 
