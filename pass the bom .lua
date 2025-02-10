@@ -1,97 +1,106 @@
--- Full Orion Library Script with Premium System, Shift Lock, and Extra Features
+-- Custom UI Library for Roblox
+-- Optimized, clean, and modern UI framework
 
--- Services
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
-local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-local HttpService = game:GetService("HttpService")
 
--- Premium System
-local function GrantPremiumToAll()
-    for _, player in ipairs(Players:GetPlayers()) do
-        player:SetAttribute("Premium", true)
-    end
-end
+-- UI Container
+local UI = Instance.new("ScreenGui")
+UI.Name = "CustomUI"
+UI.Parent = game.CoreGui
 
-Players.PlayerAdded:Connect(function(player)
-    player:SetAttribute("Premium", true)
+-- UI Frame
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 400, 0, 500)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
+MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+MainFrame.BorderSizePixel = 0
+MainFrame.Parent = UI
+
+local UICorner = Instance.new("UICorner")
+UICorner.CornerRadius = UDim.new(0, 10)
+UICorner.Parent = MainFrame
+
+-- Title Bar
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 40)
+Title.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+Title.Text = "Custom UI"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.TextSize = 18
+Title.Font = Enum.Font.GothamBold
+Title.Parent = MainFrame
+
+local TitleCorner = Instance.new("UICorner")
+TitleCorner.CornerRadius = UDim.new(0, 10)
+TitleCorner.Parent = Title
+
+-- Close Button
+local CloseButton = Instance.new("TextButton")
+CloseButton.Size = UDim2.new(0, 40, 0, 40)
+CloseButton.Position = UDim2.new(1, -40, 0, 0)
+CloseButton.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
+CloseButton.Text = "X"
+CloseButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+CloseButton.Font = Enum.Font.GothamBold
+CloseButton.Parent = MainFrame
+
+local CloseCorner = Instance.new("UICorner")
+CloseCorner.CornerRadius = UDim.new(0, 10)
+CloseCorner.Parent = CloseButton
+
+CloseButton.MouseButton1Click:Connect(function()
+    UI:Destroy()
 end)
 
-function IsPremium(player)
-    return player:GetAttribute("Premium") == true
+-- Sidebar for Navigation
+local Sidebar = Instance.new("Frame")
+Sidebar.Size = UDim2.new(0, 120, 1, -40)
+Sidebar.Position = UDim2.new(0, 0, 0, 40)
+Sidebar.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+Sidebar.Parent = MainFrame
+
+local SidebarCorner = Instance.new("UICorner")
+SidebarCorner.CornerRadius = UDim.new(0, 10)
+SidebarCorner.Parent = Sidebar
+
+-- Tab Container
+local TabContainer = Instance.new("Frame")
+TabContainer.Size = UDim2.new(1, -120, 1, -40)
+TabContainer.Position = UDim2.new(0, 120, 0, 40)
+TabContainer.BackgroundColor3 = Color3.fromRGB(35, 35, 35)
+TabContainer.Parent = MainFrame
+
+local TabCorner = Instance.new("UICorner")
+TabCorner.CornerRadius = UDim.new(0, 10)
+TabCorner.Parent = TabContainer
+
+-- Function to create tabs
+local function CreateTab(name, callback)
+    local TabButton = Instance.new("TextButton")
+    TabButton.Size = UDim2.new(1, 0, 0, 40)
+    TabButton.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    TabButton.Text = name
+    TabButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    TabButton.Font = Enum.Font.GothamBold
+    TabButton.Parent = Sidebar
+
+    TabButton.MouseButton1Click:Connect(callback)
 end
 
--- Ensure premium status is granted upon script start
-GrantPremiumToAll()
+-- Example tabs
+CreateTab("Home", function()
+    print("Home tab clicked")
+end)
 
--- Shift Lock System
-local shiftlockk = Instance.new("ScreenGui")
-local LockButton = Instance.new("ImageButton")
-local btnIcon = Instance.new("ImageLabel")
+CreateTab("Settings", function()
+    print("Settings tab clicked")
+end)
 
-shiftlockk.Name = "shiftlockk"
-shiftlockk.Parent = game.CoreGui
-shiftlockk.ResetOnSpawn = false
-
-LockButton.Name = "LockButton"
-LockButton.Parent = shiftlockk
-LockButton.AnchorPoint = Vector2.new(1, 1)
-LockButton.Position = UDim2.new(1, -50, 1, -50)
-LockButton.Size = UDim2.new(0, 60, 0, 60)
-LockButton.Image = "rbxassetid://530406505"
-LockButton.ImageColor3 = Color3.fromRGB(0, 133, 199)
-
-btnIcon.Name = "btnIcon"
-btnIcon.Parent = LockButton
-btnIcon.Position = UDim2.new(0.1, 0, 0.1, 0)
-btnIcon.Size = UDim2.new(0.8, 0, 0.8, 0)
-btnIcon.Image = "rbxasset://textures/ui/mouseLock_off.png"
-
-local function EnableShiftLock()
-    local GameSettings = UserSettings():GetService("UserGameSettings")
-    local previousRotation = GameSettings.RotationType
-    local connection
-
-    connection = RunService.RenderStepped:Connect(function()
-        pcall(function()
-            GameSettings.RotationType = Enum.RotationType.CameraRelative
-        end)
-    end)
-
-    LockButton.MouseButton1Click:Connect(function()
-        if connection then
-            connection:Disconnect()
-            GameSettings.RotationType = previousRotation
-        else
-            connection = RunService.RenderStepped:Connect(function()
-                pcall(function()
-                    GameSettings.RotationType = Enum.RotationType.CameraRelative
-                end)
-            end)
-        end
-    end)
-end
-EnableShiftLock()
-
--- Utility Functions
-local function getClosestPlayer()
-    local closestPlayer = nil
-    local shortestDistance = math.huge
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
-            if distance < shortestDistance then
-                shortestDistance = distance
-                closestPlayer = player
-            end
-        end
-    end
-    return closestPlayer
-end
-
+-- Function to rotate character towards target
 local function rotateCharacterTowardsTarget(targetPosition)
     local character = LocalPlayer.Character
     if not character then return end
@@ -106,119 +115,107 @@ local function rotateCharacterTowardsTarget(targetPosition)
     tween:Play()
 end
 
--- Features
-local bombPassDistance = 10
-local AutoPassEnabled = false
-local AntiSlipperyEnabled = false
-local RemoveHitboxEnabled = false
-local autoPassConnection = nil
+-- Feature Toggles
+local function CreateToggle(name, callback)
+    local ToggleButton = Instance.new("TextButton")
+    ToggleButton.Size = UDim2.new(0, 120, 0, 40)
+    ToggleButton.BackgroundColor3 = Color3.fromRGB(50, 200, 50)
+    ToggleButton.Text = name
+    ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+    ToggleButton.Font = Enum.Font.GothamBold
+    ToggleButton.Parent = TabContainer
 
-local function autoPassBomb()
-    if not AutoPassEnabled then return end
-    pcall(function()
-        local Bomb = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Bomb")
-        if Bomb then
-            local BombEvent = Bomb:FindFirstChild("RemoteEvent")
-            local closestPlayer = getClosestPlayer()
-            if closestPlayer and closestPlayer.Character then
-                local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
-                rotateCharacterTowardsTarget(targetPosition)
-                BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
-            end
-        end
+    ToggleButton.MouseButton1Click:Connect(function()
+        local active = ToggleButton.BackgroundColor3 == Color3.fromRGB(50, 200, 50)
+        ToggleButton.BackgroundColor3 = active and Color3.fromRGB(200, 50, 50) or Color3.fromRGB(50, 200, 50)
+        callback(not active)
     end)
 end
 
--- Anti Slippery Implementation
-local function applyAntiSlippery(enable)
-    if enable then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+-- Implement Feature Toggles
+local AutoPassEnabled = false
+local AntiSlipperyEnabled = false
+local RemoveHitboxEnabled = false
+
+CreateToggle("Auto Pass Bomb", function(state)
+    AutoPassEnabled = state
+    if state then
+        RunService.RenderStepped:Connect(function()
+            if AutoPassEnabled then
+                -- Auto Pass Bomb logic
+                for _, player in pairs(Players:GetPlayers()) do
+                    if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Bomb") then
+                        -- Rotate and pass the bomb to another player
+                        local passTarget = Players:GetPlayers()[math.random(1, #Players:GetPlayers())]
+                        if passTarget and passTarget.Character then
+                            rotateCharacterTowardsTarget(passTarget.Character.HumanoidRootPart.Position)
+                            player.Character.Bomb.CFrame = passTarget.Character.HumanoidRootPart.CFrame
+                        end
+                    end
+                end
+            end
+        end)
+    end
+end)
+
+CreateToggle("Anti Slippery", function(state)
+    AntiSlipperyEnabled = state
+    if state then
+        -- Anti Slippery logic
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                part.CustomPhysicalProperties = PhysicalProperties.new(1, 0.3, 0.5)
             end
         end
     else
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+        -- Reset to default
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 0, 0) -- Default properties
+                part.CustomPhysicalProperties = PhysicalProperties.new()
             end
         end
     end
-end
+end)
 
--- Remove Hitbox Implementation
-local function applyRemoveHitbox(enable)
-    if enable then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+CreateToggle("Remove Hitbox", function(state)
+    RemoveHitboxEnabled = state
+    if state then
+        -- Remove Hitbox logic
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.Name == "Hitbox" then
                 part.Transparency = 1
                 part.CanCollide = false
             end
         end
     else
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+        -- Reset Hitbox
+        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
             if part:IsA("BasePart") and part.Name == "Hitbox" then
                 part.Transparency = 0
                 part.CanCollide = true
             end
         end
     end
+end)
+
+-- Notifications
+local function ShowNotification(message)
+    local Notification = Instance.new("TextLabel")
+    Notification.Size = UDim2.new(0, 300, 0, 50)
+    Notification.Position = UDim2.new(0.5, -150, 0, -60)
+    Notification.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    Notification.Text = message
+    Notification.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Notification.Font = Enum.Font.GothamBold
+    Notification.Parent = UI
+
+    TweenService:Create(Notification, TweenInfo.new(0.5), {Position = UDim2.new(0.5, -150, 0, 20)}):Play()
+    wait(2)
+    TweenService:Create(Notification, TweenInfo.new(0.5), {Position = UDim2.new(0.5, -150, 0, -60)}):Play()
+    wait(0.5)
+    Notification:Destroy()
 end
 
--- UI Elements
-local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
-local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
+ShowNotification("Welcome to Custom UI!")
 
--- Debug print to see if the player is recognized as premium
-print("Is LocalPlayer premium? " .. tostring(IsPremium(LocalPlayer)))
-
-if IsPremium(LocalPlayer) then
-    local AutomatedTab = Window:MakeTab({
-        Name = "Automated",
-        Icon = "rbxassetid://4483345998",
-        PremiumOnly = true
-    })
-
-    AutomatedTab:AddToggle({
-        Name = "Anti Slippery",
-        Default = false,
-        Callback = function(value)
-            AntiSlipperyEnabled = value
-            applyAntiSlippery(value)
-        end
-    })
-
-    AutomatedTab:AddToggle({
-        Name = "Remove Hitbox",
-        Default = false,
-        Callback = function(value)
-            RemoveHitboxEnabled = value
-            applyRemoveHitbox(value)
-        end
-    })
-
-    AutomatedTab:AddToggle({
-        Name = "Auto Pass Bomb",
-        Default = false,
-        Callback = function(value)
-            AutoPassEnabled = value
-            if AutoPassEnabled then
-                autoPassConnection = RunService.Stepped:Connect(autoPassBomb)
-            else
-                if autoPassConnection then
-                    autoPassConnection:Disconnect()
-                    autoPassConnection = nil
-                end
-            end
-        end
-    })
-else
-    Window:MakeTab({
-        Name = "Premium Locked",
-        Icon = "rbxassetid://4483345998",
-        PremiumOnly = false
-    }):AddLabel("⚠️ This feature requires Premium.")
-end
-
-OrionLib:Init()
-print("Yon Menu Script Loaded with Shift Lock & Premium Features 🚀")
+print("Custom UI Loaded Successfully")
