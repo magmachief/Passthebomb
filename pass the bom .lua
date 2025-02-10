@@ -276,15 +276,7 @@ end
 -----------------------------------------------------
 -- INITIALIZE UI & NOTIFICATIONS
 -----------------------------------------------------
-OrionLibLoaded:Init()
-OrionLibLoaded:MakeNotification({
-    Name = "Yon Menu",
-    Content = "Yon Menu Script Loaded with Shift Lock & Premium Features 🚀",
-    Time = 5
-})
-print("Yon Menu Script Loaded with Shift Lock & Premium Features 🚀")
-
------------------------------------------------------
+---------------------------------------
 -- BUILT-IN CONSOLE FUNCTIONS
 -- These functions allow you to display a console on the client.
 -----------------------------------------------------
@@ -448,3 +440,12 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
         OrionLibLoaded:ToggleConsole()
     end
 end)
+OrionLibLoaded:Init()
+OrionLibLoaded:MakeNotification({
+    Name = "Yon Menu",
+    Content = "Yon Menu Script Loaded with Shift Lock & Premium Features 🚀",
+    Time = 5
+})
+print("Yon Menu Script Loaded with Shift Lock & Premium Features 🚀")
+
+--------------
