@@ -18,6 +18,7 @@ MainFrame.Size = UDim2.new(0, 400, 0, 500)
 MainFrame.Position = UDim2.new(0.5, -200, 0.5, -250)
 MainFrame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 MainFrame.BorderSizePixel = 0
+MainFrame.Visible = false -- Ensure it starts hidden
 MainFrame.Parent = UI
 
 local UICorner = Instance.new("UICorner")
@@ -216,16 +217,20 @@ local function ShowNotification(message)
     wait(0.5)
     Notification:Destroy()
 end
+-- Toggle UI Function
+local function ToggleUI()
+    MainFrame.Visible = not MainFrame.Visible
+    DragToggle.Visible = not MainFrame.Visible
+end
 
 -- Draggable Toggle Button
 local DragToggle = Instance.new("TextButton")
 DragToggle.Size = UDim2.new(0, 40, 0, 40)
-DragToggle.Position = UDim2.new(0.5, -20, 0, 20)
+DragToggle.Position = UDim2.new(0, 10, 0, 10)
 DragToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
-DragToggle.Text = "O"
+DragToggle.Text = "≡"
 DragToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 DragToggle.Font = Enum.Font.GothamBold
-DragToggle.Visible = false
 DragToggle.Parent = UI
 
 local DragToggleCorner = Instance.new("UICorner")
@@ -237,7 +242,7 @@ local dragInputToggle, dragStartToggle, startPosToggle
 
 local function updateToggle(input)
     local delta = input.Position - dragStartToggle
-    DragToggle.Position = UDim2.new(startPosToggle.X.Scale, startPosToggle.X.Offset + delta.X, startPosToggle.Y.Scale, startPosToggle.Y.Offset + delta.Y)
+    DragToggle.Position = UDim2.new(0, startPosToggle.X.Offset + delta.X, 0, startPosToggle.Y.Offset + delta.Y)
 end
 
 DragToggle.InputBegan:Connect(function(input)
@@ -245,12 +250,6 @@ DragToggle.InputBegan:Connect(function(input)
         draggingToggle = true
         dragStartToggle = input.Position
         startPosToggle = DragToggle.Position
-
-        input.Changed:Connect(function()
-            if input.UserInputState == Enum.UserInputState.End then
-                draggingToggle = false
-            end
-        end)
     end
 end)
 
@@ -266,11 +265,15 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-DragToggle.MouseButton1Click:Connect(function()
-    MainFrame.Visible = not MainFrame.Visible
-    DragToggle.Visible = not MainFrame.Visible
-end)
+DragToggle.MouseButton1Click:Connect(ToggleUI)
 
+-- Keybind Toggle
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.F2 then
+        ToggleUI()
+    end
+end)
 ShowNotification("Welcome to Custom UI!")
 
 print("Custom UI Loaded Successfully")
