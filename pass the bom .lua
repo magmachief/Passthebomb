@@ -85,20 +85,26 @@ local function applyAntiSlippery(enable)
     local character = LocalPlayer.Character
     if not character then return end
 
+    -- If Anti Slippery is enabled
     if enable then
+        -- Iterate over each part and change physical properties to prevent slipperiness
         for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
+                -- Apply anti-slippery properties
                 part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
             end
         end
     else
+        -- If Anti Slippery is disabled, revert to default physical properties
         for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5) -- Default properties
+                -- Revert to default properties
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
             end
         end
     end
 end
+
 
 -- Remove Hitbox: Destroy collision parts
 local function applyRemoveHitbox(enable)
@@ -126,8 +132,12 @@ end
 --  APPLY FEATURES ON RESPAWN --
 --========================--
 LocalPlayer.CharacterAdded:Connect(function()
-    if AntiSlipperyEnabled then applyAntiSlippery(true) end
-    if RemoveHitboxEnabled then applyRemoveHitbox(true) end
+    if AntiSlipperyEnabled then 
+        applyAntiSlippery(true) 
+    end
+    if RemoveHitboxEnabled then 
+        applyRemoveHitbox(true) 
+    end
 end)
 
 --========================--
