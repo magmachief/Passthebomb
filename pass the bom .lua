@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local PathfindingService = game:GetService("PathfindingService")
 local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
 
 --// Variables
 local bombPassDistance = 10
@@ -20,7 +21,11 @@ local uiThemes = {
     ["Red"] = { Background = Color3.new(1, 0, 0), Text = Color3.new(1, 1, 1) },
 }
 
--- Utility Functions
+--========================--
+--    UTILITY FUNCTIONS   --
+--========================--
+
+-- Function to get the closest player
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
@@ -36,6 +41,7 @@ local function getClosestPlayer()
     return closestPlayer
 end
 
+-- Function to rotate the character towards the target smoothly
 local function rotateCharacterTowardsTarget(targetPosition)
     local character = LocalPlayer.Character
     if not character then return end
@@ -46,17 +52,12 @@ local function rotateCharacterTowardsTarget(targetPosition)
     local direction = (targetPosition - humanoidRootPart.Position).unit
     local newCFrame = CFrame.fromMatrix(humanoidRootPart.Position, direction, Vector3.new(0, 1, 0))
 
+    -- Smooth rotation using TweenService
     local tween = TweenService:Create(humanoidRootPart, TweenInfo.new(0.3, Enum.EasingStyle.Linear), {CFrame = newCFrame})
     tween:Play()
 end
 
--- Features
-local bombPassDistance = 10
-local AutoPassEnabled = false
-local AntiSlipperyEnabled = false
-local RemoveHitboxEnabled = false
-local autoPassConnection = nil
-
+-- Auto Pass Bomb Logic
 local function autoPassBomb()
     if not AutoPassEnabled then return end
     pcall(function()
@@ -67,40 +68,47 @@ local function autoPassBomb()
             if closestPlayer and closestPlayer.Character then
                 local targetPosition = closestPlayer.Character.HumanoidRootPart.Position
                 rotateCharacterTowardsTarget(targetPosition)
+                -- Fire the remote event to pass the bomb
                 BombEvent:FireServer(closestPlayer.Character, closestPlayer.Character:FindFirstChild("CollisionPart"))
             end
         end
     end)
 end
 
--- Anti Slippery Implementation
+-- Anti-Slippery: Apply or reset physical properties
 local function applyAntiSlippery(enable)
+    local character = LocalPlayer.Character
+    if not character then return end
+
     if enable then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+        for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
                 part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
             end
         end
     else
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+        for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 0, 0) -- Default properties
+                part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5) -- Default properties
             end
         end
     end
 end
 
--- Remove Hitbox Implementation
+-- Remove Hitbox: Destroy collision parts
 local function applyRemoveHitbox(enable)
+    local character = LocalPlayer.Character
+    if not character then return end
+
     if enable then
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+        for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") and part.Name == "Hitbox" then
                 part.Transparency = 1
                 part.CanCollide = false
             end
         end
     else
-        for _, part in ipairs(LocalPlayer.Character:GetDescendants()) do
+        for _, part in ipairs(character:GetDescendants()) do
             if part:IsA("BasePart") and part.Name == "Hitbox" then
                 part.Transparency = 0
                 part.CanCollide = true
@@ -108,6 +116,15 @@ local function applyRemoveHitbox(enable)
         end
     end
 end
+
+--========================--
+--  APPLY FEATURES ON RESPAWN --
+--========================--
+LocalPlayer.CharacterAdded:Connect(function()
+    if AntiSlipperyEnabled then applyAntiSlippery(true) end
+    if RemoveHitboxEnabled then applyRemoveHitbox(true) end
+end)
+
 --========================--
 --  ORIONLIB INTERFACE    --
 --========================--
@@ -126,6 +143,7 @@ local AutomatedTab = Window:MakeTab({
     PremiumOnly = false
 })
 
+-- Add toggles, sliders, and dropdowns for the features
 AutomatedTab:AddToggle({
     Name = "Anti Slippery",
     Default = AntiSlipperyEnabled,
