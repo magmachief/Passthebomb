@@ -1,37 +1,86 @@
+-- Full Orion Library Script with Premium System, Shift Lock, and Extra Features
+
 -- Services
 local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
-local LocalPlayer = game:GetService("Players").LocalPlayer
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 local HttpService = game:GetService("HttpService")
 
 -- Premium System
 local function GrantPremiumToAll()
-    for _, player in ipairs(game:GetService("Players"):GetPlayers()) do
-        player:SetAttribute("Premium", true)  -- Match existing "Premium"
+    for _, player in ipairs(Players:GetPlayers()) do
+        player:SetAttribute("Premium", true)
     end
 end
 
-game:GetService("Players").PlayerAdded:Connect(function(player)
-    player:SetAttribute("Premium", true)  -- Match existing "Premium"
+Players.PlayerAdded:Connect(function(player)
+    player:SetAttribute("Premium", true)
 end)
 
 function IsPremium(player)
-    return player:GetAttribute("Premium") == true  -- Match existing "Premium"
+    return player:GetAttribute("Premium") == true
 end
 
 -- Ensure premium status is granted upon script start
 GrantPremiumToAll()
 
--- Shift Lock System (removed based on your request)
--- Removing shift lock feature since this script is separate and the user doesn't want it.
+-- Shift Lock System
+local shiftlockk = Instance.new("ScreenGui")
+local LockButton = Instance.new("ImageButton")
+local btnIcon = Instance.new("ImageLabel")
+
+shiftlockk.Name = "shiftlockk"
+shiftlockk.Parent = game.CoreGui
+shiftlockk.ResetOnSpawn = false
+
+LockButton.Name = "LockButton"
+LockButton.Parent = shiftlockk
+LockButton.AnchorPoint = Vector2.new(1, 1)
+LockButton.Position = UDim2.new(1, -50, 1, -50)
+LockButton.Size = UDim2.new(0, 60, 0, 60)
+LockButton.Image = "rbxassetid://530406505"
+LockButton.ImageColor3 = Color3.fromRGB(0, 133, 199)
+
+btnIcon.Name = "btnIcon"
+btnIcon.Parent = LockButton
+btnIcon.Position = UDim2.new(0.1, 0, 0.1, 0)
+btnIcon.Size = UDim2.new(0.8, 0, 0.8, 0)
+btnIcon.Image = "rbxasset://textures/ui/mouseLock_off.png"
+
+local function EnableShiftLock()
+    local GameSettings = UserSettings():GetService("UserGameSettings")
+    local previousRotation = GameSettings.RotationType
+    local connection
+
+    connection = RunService.RenderStepped:Connect(function()
+        pcall(function()
+            GameSettings.RotationType = Enum.RotationType.CameraRelative
+        end)
+    end)
+
+    LockButton.MouseButton1Click:Connect(function()
+        if connection then
+            connection:Disconnect()
+            GameSettings.RotationType = previousRotation
+        else
+            connection = RunService.RenderStepped:Connect(function()
+                pcall(function()
+                    GameSettings.RotationType = Enum.RotationType.CameraRelative
+                end)
+            end)
+        end
+    end)
+end
+EnableShiftLock()
 
 -- Utility Functions
 local function getClosestPlayer()
     local closestPlayer = nil
     local shortestDistance = math.huge
-    for _, player in pairs(game:GetService("Players"):GetPlayers()) do
+    for _, player in pairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
             local distance = (player.Character.HumanoidRootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).magnitude
             if distance < shortestDistance then
@@ -58,7 +107,7 @@ local function rotateCharacterTowardsTarget(targetPosition)
 end
 
 -- Features
-local bombDistance = 10
+local bombPassDistance = 10
 local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
@@ -118,7 +167,7 @@ end
 
 -- UI Elements
 local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
-local Window = OrionLib:MakeWindow({ Name = "Advanced Menu", HidePremium = false, SaveConfig = true, ConfigFolder = "Advanced_Config" })
+local Window = OrionLib:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced" })
 
 -- Debug print to see if the player is recognized as premium
 print("Is LocalPlayer premium? " .. tostring(IsPremium(LocalPlayer)))
@@ -163,18 +212,6 @@ if IsPremium(LocalPlayer) then
             end
         end
     })
-
-    -- Bomb Distance Slider
-    AutomatedTab:AddSlider({
-        Name = "Bomb Distance",
-        Min = 5,
-        Max = 20,
-        Default = 10,
-        Callback = function(value)
-            bombDistance = value
-            print("Bomb Distance set to: " .. bombDistance)
-        end
-    })
 else
     Window:MakeTab({
         Name = "Premium Locked",
@@ -184,4 +221,4 @@ else
 end
 
 OrionLib:Init()
-print("Yon Menu Script Loaded with Premium Features 🚀")
+print("Yon Menu Script Loaded with Shift Lock & Premium Features 🚀")  ok I fixed everything can you add the bomb distance on menu make the max reach be 20 and it should be 5-20
