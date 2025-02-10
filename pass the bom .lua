@@ -1,15 +1,5 @@
---[[
-    FULL LOCAL SCRIPT (WITHOUT CONSOLE FUNCTIONS)
-    -----------------------------------------------
-    This script loads OrionLib from GitHub, sets up the Premium and Shift Lock systems,
-    adds extra features including a Bomb Distance slider, and creates the main UI window.
-    
-    Debug modifications:
-      - Prints the OrionLibLoaded variable.
-      - Sets IntroEnabled to false so the window appears immediately.
-    
-    Ensure this script is a LocalScript and your executor allows HTTP requests.
---]]
+-- Full Orion Library Script with Premium System, Shift Lock, and Extra Features,
+-- plus a Bomb Distance slider (range: 5-20 studs, default = 10)
 
 -----------------------------------------------------
 -- SERVICES & LOCAL VARIABLES
@@ -98,7 +88,7 @@ end
 EnableShiftLock()
 
 -----------------------------------------------------
--- UTILITY FUNCTIONS (Target Finding & Rotation)
+-- UTILITY FUNCTIONS
 -----------------------------------------------------
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -192,18 +182,10 @@ end
 -----------------------------------------------------
 -- ORION LIBRARY SETUP (Load from GitHub)
 -----------------------------------------------------
-local OrionLibSource = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
+local OrionLibSource = "https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"
+local OrionLibLoaded = loadstring(game:HttpGet(OrionLibSource))()
+local Window = OrionLibLoaded:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced", IntroEnabled = true })
 
--- For testing, set IntroEnabled = false so that the window appears immediately.
-local Window = OrionLibSource:MakeWindow({ 
-    Name = "Yon Menu - Advanced", 
-    HidePremium = false, 
-    SaveConfig = true, 
-    ConfigFolder = "YonMenu_Advanced", 
-    IntroEnabled = false  -- false for immediate display during testing
-})
-
-print("Window created. Check CoreGui for the Orion GUI.")
 print("Is LocalPlayer premium? " .. tostring(IsPremium(LocalPlayer)))
 
 -----------------------------------------------------
@@ -273,8 +255,8 @@ end
 -----------------------------------------------------
 -- INITIALIZE UI & NOTIFICATIONS
 -----------------------------------------------------
-OrionLibSource:Init()
-OrionLibSource:MakeNotification({
+OrionLibLoaded:Init()
+OrionLibLoaded:MakeNotification({
     Name = "Yon Menu",
     Content = "Yon Menu Script Loaded with Shift Lock & Premium Features 🚀",
     Time = 5
