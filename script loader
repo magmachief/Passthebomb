@@ -1,2 +1,4 @@
 -- Load and execute external script for Pass The Bomb
 loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Passthebomb/refs/heads/main/pass%20the%20bom%20.lua"))()
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/whitelists/refs/heads/main/key.lua"))()
