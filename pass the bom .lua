@@ -1,13 +1,5 @@
---[[
-    FULL LOCAL SCRIPT
-    -------------------------------
-    This script loads OrionLib from GitHub, sets up Premium and Shift Lock systems,
-    defines extra features (including a bomb distance slider), and creates a UI window.
-    It now also includes built-in console functions so you can press F9 to toggle
-    a console window.
-    
-    Make sure this script is a LocalScript (client-side) and your executor allows HTTP requests.
---]]
+-- Full Orion Library Script with Premium System, Shift Lock, and Extra Features,
+-- plus a Bomb Distance slider (range: 5-20 studs, default = 10)
 
 -----------------------------------------------------
 -- SERVICES & LOCAL VARIABLES
@@ -42,7 +34,6 @@ GrantPremiumToAll()
 -----------------------------------------------------
 -- SHIFT LOCK SYSTEM
 -----------------------------------------------------
--- Shift Lock System (Revised)
 local shiftlockk = Instance.new("ScreenGui")
 local LockButton = Instance.new("ImageButton")
 local btnIcon = Instance.new("ImageLabel")
@@ -66,37 +57,31 @@ btnIcon.Size = UDim2.new(0.8, 0, 0.8, 0)
 btnIcon.Image = "rbxasset://textures/ui/mouseLock_off.png"
 
 local function EnableShiftLock()
-    local gameSettings = settings():GetService("UserGameSettings")
-    local previousRotation = gameSettings.RotationType
-    local connection = nil
-
-    -- Initially enable shift lock
+    local GameSettings = UserSettings():GetService("UserGameSettings")
+    local previousRotation = GameSettings.RotationType
+    local connection
     connection = RunService.RenderStepped:Connect(function()
         pcall(function()
-            gameSettings.RotationType = Enum.RotationType.CameraRelative
+            GameSettings.RotationType = Enum.RotationType.CameraRelative
         end)
     end)
-
     LockButton.MouseButton1Click:Connect(function()
         if connection then
             connection:Disconnect()
-            connection = nil
-            gameSettings.RotationType = previousRotation
-            print("Shift Lock disabled")
+            GameSettings.RotationType = previousRotation
         else
             connection = RunService.RenderStepped:Connect(function()
                 pcall(function()
-                    gameSettings.RotationType = Enum.RotationType.CameraRelative
+                    GameSettings.RotationType = Enum.RotationType.CameraRelative
                 end)
             end)
-            print("Shift Lock enabled")
         end
     end)
 end
 EnableShiftLock()
 
 -----------------------------------------------------
--- UTILITY FUNCTIONS (for target finding & rotation)
+-- UTILITY FUNCTIONS
 -----------------------------------------------------
 local function getClosestPlayer()
     local closestPlayer = nil
@@ -191,21 +176,8 @@ end
 -- ORION LIBRARY SETUP (Load from GitHub)
 -----------------------------------------------------
 local OrionLibSource = "https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"
-local success, OrionLibLoaded = pcall(function() return loadstring(game:HttpGet(OrionLibSource))() end)
-if not success or not OrionLibLoaded then
-    error("Failed to load OrionLib! Check HTTP permissions and the remote file.")
-end
-print("OrionLibLoaded =", OrionLibLoaded)
-
--- For testing, set IntroEnabled = false so that the window appears immediately.
-local Window = OrionLibLoaded:MakeWindow({ 
-    Name = "Yon Menu - Advanced", 
-    HidePremium = false, 
-    SaveConfig = true, 
-    ConfigFolder = "YonMenu_Advanced", 
-    IntroEnabled = false  -- immediate display for testing
-})
-print("Window created. Check CoreGui for the Orion GUI.")
+local OrionLibLoaded = loadstring(game:HttpGet(OrionLibSource))()
+local Window = OrionLibLoaded:MakeWindow({ Name = "Yon Menu - Advanced", HidePremium = false, SaveConfig = true, ConfigFolder = "YonMenu_Advanced", IntroEnabled = true })
 
 print("Is LocalPlayer premium? " .. tostring(IsPremium(LocalPlayer)))
 
@@ -283,5 +255,3 @@ OrionLibLoaded:MakeNotification({
     Time = 5
 })
 print("Yon Menu Script Loaded with Shift Lock & Premium Features 🚀")
-
---------------
