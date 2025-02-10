@@ -80,25 +80,24 @@ local function autoPassBomb()
     end)
 end
 
--- Anti-Slippery: Apply or reset physical properties
-local function applyAntiSlippery(enable)
-    local character = LocalPlayer.Character
-    if not character then return end
-
-    -- If Anti Slippery is enabled
-    if enable then
-        -- Iterate over each part and change physical properties to prevent slipperiness
-        for _, part in ipairs(character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                -- Apply anti-slippery properties
-                part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+-- Anti-Slippery: (Working Version)
+local function applyAntiSlippery(enabled)
+    if enabled then
+        spawn(function()
+            while AntiSlipperyEnabled do
+                local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+                for _, part in pairs(character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5)
+                    end
+                end
+                wait(0.1)
             end
-        end
+        end)
     else
-        -- If Anti Slippery is disabled, revert to default physical properties
-        for _, part in ipairs(character:GetDescendants()) do
+        local character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+        for _, part in pairs(character:GetDescendants()) do
             if part:IsA("BasePart") then
-                -- Revert to default properties
                 part.CustomPhysicalProperties = PhysicalProperties.new(0.5, 0.3, 0.5)
             end
         end
@@ -132,12 +131,8 @@ end
 --  APPLY FEATURES ON RESPAWN --
 --========================--
 LocalPlayer.CharacterAdded:Connect(function()
-    if AntiSlipperyEnabled then 
-        applyAntiSlippery(true) 
-    end
-    if RemoveHitboxEnabled then 
-        applyRemoveHitbox(true) 
-    end
+    if AntiSlipperyEnabled then applyAntiSlippery(true) end
+    if RemoveHitboxEnabled then applyRemoveHitbox(true) end
 end)
 
 --========================--
