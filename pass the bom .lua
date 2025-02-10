@@ -279,6 +279,7 @@ end
 -- INITIALIZE UI & NOTIFICATIONS
 -----------------------------------------------------
 OrionLibLoaded:Init()
+OrionLib:MakeConsole()
 OrionLibLoaded:MakeNotification({
     Name = "Yon Menu",
     Content = "Yon Menu Script Loaded with Shift Lock & Premium Features 🚀",
