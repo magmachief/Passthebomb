@@ -53,7 +53,8 @@ CloseCorner.CornerRadius = UDim.new(0, 10)
 CloseCorner.Parent = CloseButton
 
 CloseButton.MouseButton1Click:Connect(function()
-    UI:Destroy()
+    MainFrame.Visible = false
+    DragToggle.Visible = true
 end)
 
 -- Sidebar for Navigation
@@ -215,6 +216,60 @@ local function ShowNotification(message)
     wait(0.5)
     Notification:Destroy()
 end
+
+-- Draggable Toggle Button
+local DragToggle = Instance.new("TextButton")
+DragToggle.Size = UDim2.new(0, 40, 0, 40)
+DragToggle.Position = UDim2.new(0.5, -20, 0, 20)
+DragToggle.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+DragToggle.Text = "O"
+DragToggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+DragToggle.Font = Enum.Font.GothamBold
+DragToggle.Visible = false
+DragToggle.Parent = UI
+
+local DragToggleCorner = Instance.new("UICorner")
+DragToggleCorner.CornerRadius = UDim.new(0, 10)
+DragToggleCorner.Parent = DragToggle
+
+local draggingToggle = false
+local dragInputToggle, dragStartToggle, startPosToggle
+
+local function updateToggle(input)
+    local delta = input.Position - dragStartToggle
+    DragToggle.Position = UDim2.new(startPosToggle.X.Scale, startPosToggle.X.Offset + delta.X, startPosToggle.Y.Scale, startPosToggle.Y.Offset + delta.Y)
+end
+
+DragToggle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        draggingToggle = true
+        dragStartToggle = input.Position
+        startPosToggle = DragToggle.Position
+
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                draggingToggle = false
+            end
+        end)
+    end
+end)
+
+DragToggle.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement then
+        dragInputToggle = input
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInputToggle and draggingToggle then
+        updateToggle(input)
+    end
+end)
+
+DragToggle.MouseButton1Click:Connect(function()
+    MainFrame.Visible = not MainFrame.Visible
+    DragToggle.Visible = not MainFrame.Visible
+end)
 
 ShowNotification("Welcome to Custom UI!")
 
