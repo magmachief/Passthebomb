@@ -6,6 +6,8 @@
          • Auto Pass Bomb
          • Anti Slippery
          • Remove Hitbox
+    This version also includes a getClosestPlayer() function so that the Auto Pass Bomb toggle 
+    will select the nearest target instead of a random one.
     No sugar-coating: this is lean and forward‑thinking. Modify as needed.
 ]]--
 
@@ -43,12 +45,36 @@ HomeTab:AddLabel("Welcome Home!")
 SettingsTab:AddLabel("Settings Tab")
 
 -----------------------------------------------------
+-- HELPER FUNCTION: Get Closest Player
+-----------------------------------------------------
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local function getClosestPlayer()
+    local closestPlayer = nil
+    local shortestDistance = math.huge
+    local localCharacter = LocalPlayer.Character
+    if not localCharacter then return nil end
+    local hrp = localCharacter:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+    for _, player in pairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character then
+            local targetHRP = player.Character:FindFirstChild("HumanoidRootPart")
+            if targetHRP then
+                local distance = (targetHRP.Position - hrp.Position).Magnitude
+                if distance < shortestDistance then
+                    shortestDistance = distance
+                    closestPlayer = player
+                end
+            end
+        end
+    end
+    return closestPlayer
+end
+
+-----------------------------------------------------
 -- HELPER FUNCTION: Rotate Character Towards Target
 -----------------------------------------------------
 local TweenService = game:GetService("TweenService")
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-
 local function rotateCharacterTowardsTarget(targetPosition)
     local character = LocalPlayer.Character
     if not character then return end
@@ -68,7 +94,7 @@ local AutoPassEnabled = false
 local AntiSlipperyEnabled = false
 local RemoveHitboxEnabled = false
 
--- Auto Pass Bomb Toggle
+-- Auto Pass Bomb Toggle (Now using getClosestPlayer)
 TogglesTab:AddToggle({
     Name = "Auto Pass Bomb",
     Default = false,
@@ -80,8 +106,7 @@ TogglesTab:AddToggle({
                 while AutoPassEnabled do
                     for _, player in pairs(Players:GetPlayers()) do
                         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Bomb") then
-                            local playersList = Players:GetPlayers()
-                            local passTarget = playersList[math.random(1, #playersList)]
+                            local passTarget = getClosestPlayer()
                             if passTarget and passTarget.Character and passTarget.Character:FindFirstChild("HumanoidRootPart") then
                                 rotateCharacterTowardsTarget(passTarget.Character.HumanoidRootPart.Position)
                                 -- Pass the bomb by setting its CFrame to the target's HumanoidRootPart CFrame
@@ -145,7 +170,7 @@ TogglesTab:AddToggle({
 -----------------------------------------------------
 -- INITIALIZE & NOTIFY
 -----------------------------------------------------
-OrionLib:Init()  -- If you use config saving, this will load your saved config.
+OrionLib:Init()  -- Loads your saved config if applicable.
 OrionLib:MakeNotification({
     Name = "Custom UI",
     Content = "Custom UI with toggles loaded successfully!",
