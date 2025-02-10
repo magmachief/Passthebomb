@@ -190,13 +190,7 @@ end
 -----------------------------------------------------
 -- ORION LIBRARY SETUP (Load from GitHub)
 -----------------------------------------------------
-local OrionLibSource = "https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"
-local success, OrionLibLoaded = pcall(function() return loadstring(game:HttpGet(OrionLibSource))() end)
-if not success or not OrionLibLoaded then
-    error("Failed to load OrionLib! Check HTTP permissions and the remote file.")
-end
-print("OrionLibLoaded =", OrionLibLoaded)
-
+local OrionLib = loadstring(game:HttpGet("https://raw.githubusercontent.com/magmachief/Library-Ui/main/Orion%20Lib%20Transparent%20%20.lua"))()
 -- For testing, set IntroEnabled = false so that the window appears immediately.
 local Window = OrionLibLoaded:MakeWindow({ 
     Name = "Yon Menu - Advanced", 
